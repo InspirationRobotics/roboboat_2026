@@ -1,0 +1,51 @@
+RoboBoat_2025
+|-- API
+|    | -- Camera
+|    |     | -- # Here is all of the low-level camera functionality.
+|    |     | -- Models
+|    |           | -- # Binary files that contain the weights of pre-trained ML models (YOLO -- .blob or .pt format)
+|    | -- GPS
+|    |     | -- # Here are all of the low-level GPS functionalities.
+|    | -- IMU
+|    |     | -- # Here is all of the low-level IMU functionality.
+|    | -- Motors
+|    |     | -- # Here is all of the low-level motor code.
+|    | -- Actuators
+|    |     | -- # low-level control code for the racketball launcher and water cannon.
+|    | -- GPIO
+|    |     | -- # low-level control code for GPIO pin communication
+|    | -- Util
+|    |     | -- # Here is all of the low-level functionality used across multiple sensors/devices.
+|    
+|-- GNC
+|    | -- Control_Core
+|    |     | -- # All of the code to control the ASV. Including localization and feedforward/feedback loop calculation
+|    | -- Mapping_Core
+|    |     | -- # All of the code to map mission target information
+|-- Missions
+|    | -- # Highest level mission logic
+|    |   
+|-- Test_Scripts
+|   | -- API_Tests
+|   |     | -- Camera_Tests
+|   |     |     | -- Connectivity Tests
+|   |     |     |     | -- # Tests to determine whether a camera can be accessed properly.
+|   |     | -- GPS_Tests
+|   |     |     | -- GPSLogs
+|   |     |     |     | -- # GPS data logging files created by GPS Test files to test GPS API functionality.
+|   |     |     | -- Missions
+|   |     |     |     | -- # GPS data logging files created by GPS Test files to test GPS API functionality, specifically on mission usage.
+|   |     |     | -- # All tests to confirm low-level GPS capabilities.
+|   |     | -- IMU_Tests
+|   |     |     | -- # All tests to confirm low-level IMU capabilities.
+|   |     | -- Motor_Tests
+|   |     |     | -- # All tests to confirm low-level motor capabilities.
+|   |
+|   | -- GNC_Tests
+|   |     | -- Control_Tests
+|   |     |    | -- # Tests to confirm control code. This will include station keeping, all basic movements, and moving to a given waypoint accurately.
+|   |     | -- Nav_Tests
+|   |     |     | -- # All tests to confirm navigation capabilities for the ASV. These rely on lower-level functionalities like the GPS and IMU..
+|
+|-- Setup
+|   | -- # Shell scripts to install all necessary functionalities given the right hardware. 
