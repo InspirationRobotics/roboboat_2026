@@ -1,4 +1,4 @@
-RoboBoat_2025
+RoboBoat_2026
 |-- API
 |    | -- Camera
 |    |     | -- # Here is all of the low-level camera functionality.
@@ -40,11 +40,13 @@ RoboBoat_2025
 |   |     |     | -- # All tests to confirm low-level IMU capabilities.
 |   |     | -- Motor_Tests
 |   |     |     | -- # All tests to confirm low-level motor capabilities.
+|   |     | -- Actuator_Tests
+|   |     |     | -- # All tests to confirm low-level actuators capabilities.
 |   |
 |   | -- GNC_Tests
 |   |     | -- Control_Tests
 |   |     |    | -- # Tests to confirm control code. This will include station keeping, all basic movements, and moving to a given waypoint accurately.
-|   |     | -- Nav_Tests
+|   |     | -- Map_Tests
 |   |     |     | -- # All tests to confirm navigation capabilities for the ASV. These rely on lower-level functionalities like the GPS and IMU..
 |
 |-- Setup
