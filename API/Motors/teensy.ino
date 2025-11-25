@@ -64,6 +64,7 @@ bool valid_GPS;
 // ======================
 float desire_lat, desire_lon, desire_heading;
 float desire_surge, desire_sway, desire_yaw;
+bool manual = true;
 
 
 float dt = 0.01;  // 100Hz for IMU
@@ -168,6 +169,9 @@ void updatePIDControl() {
     // 2. Compute heading error [-180, 180]
     // --------------------------------------------------------
     float yaw_error = desire_heading - fused_heading;
+    if(manual){
+        yaw_error = 0;
+    }
     while (yaw_error > 180) yaw_error -= 360;
     while (yaw_error < -180) yaw_error += 360;
     if(debugMode){
@@ -239,9 +243,12 @@ void parseSerial(String data){
     desire_yaw            = data.substring(c5 + 1).toFloat();
 
     if(desire_lat==0){
+        manual = true;
         desire_lat = fused_lat;
         desire_lon = fused_lon;
         desire_heading = fused_heading;
+    }else{
+        manual = false;
     }
     
     if(debugMode){
