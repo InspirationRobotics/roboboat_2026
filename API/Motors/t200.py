@@ -14,7 +14,7 @@ class Arduino:
         port (str): Port to initiate serial connection with. Defaults to "/dev/tty/ACM0".
         baudrate (int): Baudrate to set serial connection to. Defaults to 115200.
     """
-    def __init__(self, port="/dev/ttyACM2", baudrate=9600):
+    def __init__(self, port="/dev/ttyACM0", baudrate=115200):
         self.arduino = serial.Serial(port=port, baudrate=baudrate, timeout = 0.1)
 
         self.send_PWM([1500] * 4)
@@ -30,7 +30,8 @@ class Arduino:
         for index, value in enumerate(command):
             command[index] = str(value)
         parsed_pwms = ",".join(command)
-        print(parsed_pwms)
+        parsed_pwms += "\n"
+        # print(parsed_pwms)
         # Example parsed_pwms : 1500,1600,1500,1750
         self.arduino.write(parsed_pwms.encode())
 
@@ -43,7 +44,7 @@ class T200(Arduino):
         debug (bool): Mode of whether or not to execute functions or not (debug = no execution). Defaults to false.
     """
 
-    def __init__(self, port = "/dev/ttyACM2", debug = False):
+    def __init__(self, port = "/dev/ttyACM0", debug = False):
         self.debug = debug
 
         if not debug:
@@ -122,7 +123,7 @@ class T200(Arduino):
                     self.motor_PWM_list[index] = PWM_value
 
             self.send_PWM(self.motor_PWM_list)
-            time.sleep(1.5)
+            time.sleep(0.02)
     
     @debug_decorator
     def stop_thrusters(self):
