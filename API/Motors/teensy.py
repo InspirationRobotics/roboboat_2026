@@ -9,14 +9,14 @@ import time
 
 
 class Teensy:
-    def __init__(self, port="/dev/ttyACM2", baudrate=115200):
+    def __init__(self, port="/dev/ttyACM1", baudrate=115200):
         self.arduino = serial.Serial(port=port, baudrate=baudrate, timeout=0.1)
 
-        self.send_PWM([0.0] * 3)
+        self.send_PWM([0,0,0])
         time.sleep(1)
 
     def send_PWM(self, command):
-        parsed = ",".join(str(int(x)) for x in command) + "\n"
+        parsed = ",".join(str(x) for x in command) + "\n"
         self.arduino.write(parsed.encode())
 
 # ==========================================================
