@@ -84,24 +84,36 @@ class TeensyNode(Node):
         self.teensy.send_PWM([surge,sway,yaw])
 
 
-    def parseGPS(self, line:str):
-        """Parse GPS data lat,lon,heading,velocity"""
-        parts = line.split(',')
-        self.lat, self.lon, self.heading, self.velocity = map(float, parts)
-        msg = NavSatFix()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = "gps"
-        msg.status.status = NavSatStatus.STATUS_FIX
-        msg.status.service = NavSatStatus.SERVICE_GPS
-        msg.latitude = self.lat
-        msg.longitude = self.lon
-        msg.altitude = 0.0
-        msg.position_covariance_type = NavSatFix.COVARIANCE_TYPE_UNKNOWN
-        self.publisher.publish(msg)
+    def parseGPS(self, line: str):
+        """Parse GPS data lat,lon,heading,velocity with error handling"""
+        try:
+            parts = line.split(',')
+            if len(parts) != 4:
+                raise ValueError(f"Expected 4 values, got {len(parts)}")
 
-        heading_msg = Float32()
-        heading_msg.data = self.heading
-        self.heading_pub.publish(heading_msg)
+            self.lat, self.lon, self.heading, self.velocity = map(float, parts)
+
+            # Publish NavSatFix
+            msg = NavSatFix()
+            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.header.frame_id = "gps"
+            msg.status.status = NavSatStatus.STATUS_FIX
+            msg.status.service = NavSatStatus.SERVICE_GPS
+            msg.latitude = self.lat
+            msg.longitude = self.lon
+            msg.altitude = 0.0
+            msg.position_covariance_type = NavSatFix.COVARIANCE_TYPE_UNKNOWN
+            self.publisher.publish(msg)
+
+            # Publish heading
+            heading_msg = Float32()
+            heading_msg.data = self.heading
+            self.heading_pub.publish(heading_msg)
+
+        except ValueError as ve:
+            self.get_logger().warn(f"Invalid GPS data format: '{line}' | {ve}")
+        except Exception as e:
+            self.get_logger().warn(f"Unexpected error parsing GPS line: '{line}' | {e}")
 
     def readloop(self):
         while rclpy.ok():
