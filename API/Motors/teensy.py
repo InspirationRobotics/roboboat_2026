@@ -9,7 +9,7 @@ import time
 
 
 class Teensy:
-    def __init__(self, port="/dev/ttyACM1", baudrate=115200):
+    def __init__(self, port="/dev/ttyACM2", baudrate=115200):
         self.arduino = serial.Serial(port=port, baudrate=baudrate, timeout=0.1)
 
         self.send_PWM([0.0] * 3)
@@ -59,6 +59,7 @@ class ThrusterControllerNode(Node):
         sway  = msg.data[1]
         yaw   = msg.data[2]
 
+        self.logger.info(f"pwm: {[surge,sway,yaw]}")
         self.teensy.send_PWM([surge,sway,yaw])
 
     def destroy_node(self):
