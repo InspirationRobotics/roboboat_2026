@@ -55,9 +55,9 @@ class ThrusterControllerNode(Node):
             self.get_logger().error("cmd_vel_normalized must be [surge, sway, yaw]")
             return
 
-        surge = float(msg.data[0],8)
-        sway  = float(msg.data[1],8)
-        yaw   = float(msg.data[2],8)
+        surge = round(float(msg.data[0]), 6)
+        sway  = round(float(msg.data[1]), 6)
+        yaw   = round(float(msg.data[2]), 6)
 
         self.logger.info(f"pwm: {[surge,sway,yaw]}")
         self.teensy.send_PWM([surge,sway,yaw])
