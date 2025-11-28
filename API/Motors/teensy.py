@@ -11,8 +11,8 @@ import time
 class Teensy:
     def __init__(self, port="/dev/ttyACM1", baudrate=115200):
         self.port = serial.Serial(port=port, baudrate=baudrate, timeout=0.1)
-        self.send_PWM([0,0,0])
         self.lock = Lock()
+        self.send_PWM([0,0,0])
         time.sleep(1)
 
 
