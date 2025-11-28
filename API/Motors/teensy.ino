@@ -69,7 +69,7 @@ bool manual = true;
 
 float dt = 0.01;  // 100Hz for IMU
 const unsigned long loopInterval = dt * 1000; // milliseconds
-bool debugMode = true;
+bool debugMode = false;
 unsigned long last_gps_time = 0;
 const unsigned long gps_timeout = 2000; // 2 seconds
 
