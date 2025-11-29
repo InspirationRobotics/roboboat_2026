@@ -86,18 +86,23 @@ class FTPNode(Node):
             red_closest = max(red_buoys, key=lambda b: b[1])
             green_closest = max(green_buoys, key=lambda b: b[1])
 
+            self.logger.info(f"red: {red_closest}")
+            self.logger.info(f"green: {green_closest}")
+
             # Midpoint
             target_x = (red_closest[0] + green_closest[0]) // 2
             target_y = (red_closest[1] + green_closest[1]) // 2
             return target_x, target_y
         elif red_buoys:
             red_closest = max(red_buoys, key=lambda b: b[1])
+            self.logger.info(f"red: {red_closest}")
             target_x = (red_closest[0]) // 2
             target_y = (red_closest[1]) // 2
             return target_x + 100, target_y
 
         elif green_buoys:
             green_closest = max(green_buoys, key=lambda b: b[1])
+            self.logger.info(f"green: {green_closest}")
             target_x = (green_closest[0]) // 2
             target_y = (green_closest[1]) // 2
             return target_x - 100, target_y
