@@ -1,0 +1,18 @@
+/**:
+  ros__parameters:
+    camera:
+      i_enable_imu: true
+      i_enable_ir: true
+      i_nn_type: spatial
+      i_pipeline_type: RGBD
+      i_mx_id: 18443010012C48F500
+
+   imu:
+      i_acc_freq: 100
+      i_rot_freq: 100
+      i_enable_rotation: true
+      i_sync_method: LINEAR_INTERPOLATE_ACCEL
+      i_rotation_vector_type: ROTATION_VECTOR
+
+    nn:
+      i_nn_config_path: depthai_ros_driver/mobilenet
