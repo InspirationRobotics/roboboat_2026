@@ -21,6 +21,10 @@ class FTPNode(Node):
         self.k_yaw = 0.005
         self.k_surge = 0.5
 
+        # camera frame attributes
+        self.frame_width = None
+        self.frame_height = None
+
         # Subscribe to normalized surge/sway/yaw command
         self.sub = self.create_subscription(
             Image,
@@ -77,17 +81,28 @@ class FTPNode(Node):
         Compute the midpoint between the closest red and green buoys.
         Returns (target_x, target_y)
         """
-        if not red_buoys or not green_buoys:
-            return None, None
+        if red_buoys and green_buoys:
+            # Find closest red and green buoy pair (largest y)
+            red_closest = max(red_buoys, key=lambda b: b[1])
+            green_closest = max(green_buoys, key=lambda b: b[1])
 
-        # Find closest red and green buoy pair (largest y)
-        red_closest = max(red_buoys, key=lambda b: b[1])
-        green_closest = max(green_buoys, key=lambda b: b[1])
+            # Midpoint
+            target_x = (red_closest[0] + green_closest[0]) // 2
+            target_y = (red_closest[1] + green_closest[1]) // 2
+            return target_x, target_y
+        elif red_buoys:
+            red_closest = max(red_buoys, key=lambda b: b[1])
+            target_x = (red_closest[0]) // 2
+            target_y = (red_closest[1]) // 2
+            return target_x + 100, target_y
 
-        # Midpoint
-        target_x = (red_closest[0] + green_closest[0]) / 2
-        target_y = (red_closest[1] + green_closest[1]) / 2
-        return target_x, target_y
+        elif green_buoys:
+            green_closest = max(green_buoys, key=lambda b: b[1])
+            target_x = (green_closest[0]) // 2
+            target_y = (green_closest[1]) // 2
+            return target_x - 100, target_y
+        else:
+            return self.frame_width//2, self.frame_height//2
 
     # -----------------------------
     # Main Navigation Function
@@ -118,14 +133,20 @@ class FTPNode(Node):
         return [surge, sway, yaw]
     def listener_callback(self, msg):
         cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+        if self.frame_width is None or self.frame_height is None:
+            self.frame_height, self.frame_width = cv_image.shape[:2]
+            self.logger(f"Width: f{self.frame_width}")
+            self.logger(f"Height: f{self.frame_height}")
 
+        cmd = self.FTPlogic(cv_image)
 
+        msg = Float32MultiArray()
+        msg.data = cmd
 
+        self.pub.publish(msg)
 
     def destroy_node(self):
-        self.get_logger().info("Stopping thrusters...")
-        self.teensy.send_PWM([0,0,0])
-        self.GPSThread.join(timeout=1)
+        self.get_logger().info("Stopping FTP mission...")
         super().destroy_node()
 
 def main(args=None):
