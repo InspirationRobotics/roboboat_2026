@@ -140,8 +140,8 @@ class FTPNode(Node):
         cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         if self.frame_width is None or self.frame_height is None:
             self.frame_height, self.frame_width = cv_image.shape[:2]
-            self.logger(f"Width: f{self.frame_width}")
-            self.logger(f"Height: f{self.frame_height}")
+            self.logger.info(f"Width: f{self.frame_width}")
+            self.logger.info(f"Height: f{self.frame_height}")
 
         cmd = self.FTPlogic(cv_image)
 
