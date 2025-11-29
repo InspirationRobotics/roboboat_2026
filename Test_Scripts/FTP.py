@@ -17,9 +17,9 @@ class FTPNode(Node):
         self.bridge = CvBridge()
 
         # Proportional control gains
-        self.k_sway = 0.005
-        self.k_yaw = 0.005
-        self.k_surge = 0.5
+        self.k_sway = 0.001
+        self.k_yaw = 0.001
+        self.k_surge = 0.3
 
         # camera frame attributes
         self.frame_width = None
@@ -131,9 +131,9 @@ class FTPNode(Node):
             yaw = -self.k_yaw * error_x
 
         # Clip outputs
-        surge = np.clip(surge, -1, 1)
-        sway = np.clip(sway, -1, 1)
-        yaw = np.clip(yaw, -1, 1)
+        surge = np.clip(surge, -0.6, 0.6)
+        sway = np.clip(sway, -0.3, 0.3)
+        yaw = np.clip(yaw, -0.2, 0.2)
 
         return [surge, sway, yaw]
     def listener_callback(self, msg):
