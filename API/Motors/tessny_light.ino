@@ -54,10 +54,10 @@ void setup(){
 void moveThrusters(double surge, double sway, double yaw){
     // TODO fix motor mixing.
 
-    double m1 =  surge - sway + yaw; // forward_port
-    double m2 =  surge + sway - yaw; // forward_starboard
-    double m3 =  surge - sway - yaw; // aft_port
-    double m4 =  surge + sway + yaw; // aft_starboard
+    double m1 =  - surge - sway - yaw; // forward_port
+    double m2 =  - surge + sway + yaw; // forward_starboard
+    double m3 =  surge - sway + yaw; // aft_port
+    double m4 =  - surge - sway + yaw; // aft_starboard
 
     pwm1 = 1500 + m1*400;      // forward_port
     pwm2 = 1500 + m2*400;      // forward_starboard
