@@ -18,7 +18,9 @@ for sysdevpath in $(find /sys/bus/usb/devices/usb*/ -name dev); do
 
         # Skip if the ID path or ID serial number is empty
         [[ -z "$ID_PATH" ]] && exit
-	    [[ -z "$ID_SERIAL" ]] && exit
+        # allow missing ID_SERIAL
+        ID_SERIAL="${ID_SERIAL:-NO_SERIAL}"
+
 
         # Print device information
         echo "/dev/$devname - $ID_PATH - $ID_SERIAL"
