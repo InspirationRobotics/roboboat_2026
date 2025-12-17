@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
 
-from API.GPS.gps_api import GPS     # <-- your existing GPS script
+from RoboBoat_2026.API.GPS.gps_api import GPS     # <-- your existing GPS script
 import threading
 
 
