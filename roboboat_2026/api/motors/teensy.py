@@ -8,7 +8,6 @@ from threading import Thread, Lock
 import serial
 import time
 
-
 class Teensy:
     def __init__(self, port="/dev/ttyACM0", baudrate=115200):
         self.port = serial.Serial(port=port, baudrate=baudrate, timeout=0.1)
@@ -20,7 +19,7 @@ class Teensy:
     def send_msg(self, command):
         parsed = ",".join(str(x) for x in command) + "\n"
         with self.lock:
-            self.port.write(parsed.encode())
+            self.port.write(str(parsed).encode())
         
 
     def read_GPS(self):
