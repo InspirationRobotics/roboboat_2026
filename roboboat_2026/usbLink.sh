@@ -5,13 +5,18 @@ for sysdevpath in $(find /sys/bus/usb/devices/usb*/ -name dev); do
     syspath="$(dirname "$sysdevpath")"
     devname="$(udevadm info -q name -p "$syspath")"
 
+
     [[ "$devname" == "bus/"* ]] && exit
 
+    # echo $devname
+    # echo $syspath
     eval "$(udevadm info -q property --export -p "$syspath")"
 
-    [[ -z "$ID_PATH" ]] && exit
-    [[ -z "$ID_SERIAL" ]] && ID_SERIAL="N/A"
+    # echo $DEVPATH
+    # echo $DEVNAME
+    [[ -z "$DEVPATH" ]] && exit
+    [[ -z "$DEVNAME" ]] && exit
 
-    echo "/dev/$devname - $ID_PATH - $ID_SERIAL"
+    echo "/dev/$devname - $DEVPATH - $DEVNAME"
 )
 done

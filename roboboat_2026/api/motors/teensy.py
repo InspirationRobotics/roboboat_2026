@@ -13,11 +13,11 @@ class Teensy:
     def __init__(self, port="/dev/ttyACM1", baudrate=115200):
         self.port = serial.Serial(port=port, baudrate=baudrate, timeout=0.1)
         self.lock = Lock()
-        self.send_PWM([0,0,0])
+        self.send_msg([0,0,0,0])  # surge,sway,yaw,activate_pump (1 to activate 0 to deactivate)
         time.sleep(1)
 
 
-    def send_PWM(self, command):
+    def send_msg(self, command):
         parsed = ",".join(str(x) for x in command) + "\n"
         with self.lock:
             self.port.write(parsed.encode())
@@ -39,6 +39,9 @@ class TeensyNode(Node):
         self.lon = 0.0
         self.heading = 0.0
         self.velocity = 0.0
+
+        # pump
+        self.activate_pump = False
         
         self.logger = self.get_logger()
         self.logger.info("Thruster Controller Node Started")
@@ -46,6 +49,7 @@ class TeensyNode(Node):
         # Thruster driver
         self.teensy = Teensy()
         self.GPSThread = Thread(target=self.readloop, daemon=True)
+        self.lock = Lock()
 
         # Subscribe to normalized surge/sway/yaw command
         self.subscription = self.create_subscription(
@@ -76,12 +80,18 @@ class TeensyNode(Node):
         yaw   = round(float(msg.data[2]), 6)
 
         self.logger.info(f"pwm: {[surge,sway,yaw]}")
-        self.teensy.send_PWM([surge,sway,yaw])
+        with self.lock:
+            if self.activate_pump:
+                self.teensy.send_PWM([surge,sway,yaw,1])
+            else:
+                self.teensy.send_PWM([surge,sway,yaw,0])
 
     def pump_callback(self, response):
         # Do your reset logic here
         self.get_logger().info('Pump triggered')
 
+        with self.lock:
+            self.activate_pump = not self.activate_pump
         response.success = True
         response.message = 'Pump triggered successfully'
         return response
