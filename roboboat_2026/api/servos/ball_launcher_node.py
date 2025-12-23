@@ -18,8 +18,14 @@ class BallLauncherNode(Node):
             Trigger,
             'toggle_ball_launcher',
             self.launch_callback
-        )
-        self.get_logger().info("GPS node started.")
+        )  # do this in cli: ros2 service call /toggle_ball_launcher std_srvs/srv/Trigger "{}"
+
+        self.srv_shutdown = self.create_service(
+            Trigger,
+            'release_ball_launcher',  # release the spring
+            self.release_callback
+        )  # do this in cli: ros2 service call /release_ball_launcher std_srvs/srv/Trigger "{}"
+        self.get_logger().info("racquetball launcher node started.")
 
     def launch_callback(self, request, response):
         """Launch the ball, always do g first then a"""
@@ -28,10 +34,21 @@ class BallLauncherNode(Node):
         self.launcher.send_command('g')
         time.sleep(0.5)
         self.launcher.send_command('a')
+
         response.success = True
         response.message = 'Pump triggered successfully'
         return response
 
+    def release_callback(self, request, response):
+        """Launch the ball, always do g first then a"""
+        self.get_logger().warning('Releasing Spring on Racquetball launcher!')
+
+        self.launcher.send_command('g')
+        time.sleep(0.5)
+        
+        response.success = True
+        response.message = 'Spring released successfully'
+        return response
 
 def main(args=None):
     rclpy.init(args=args)
