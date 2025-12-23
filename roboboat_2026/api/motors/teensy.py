@@ -21,6 +21,7 @@ class Teensy:
         parsed = ",".join(str(x) for x in command) + "\n"
         with self.lock:
             self.port.write(parsed.encode())
+        
 
     def read_GPS(self):
         with self.lock:
@@ -57,7 +58,7 @@ class TeensyNode(Node):
             '/teensy/pwm',
             self.listener_callback,
             10
-        )
+        )   # to send in cli: ros2 topic pub /teensy/pwm std_msgs/msg/Float32MultiArray "{data: [0.0, 0.0, 0.0]}"
 
         self.srv = self.create_service(
             Trigger,
@@ -83,9 +84,10 @@ class TeensyNode(Node):
         self.logger.info(f"pwm: {[surge,sway,yaw]}")
         with self.lock:
             if self.activate_pump:
-                self.teensy.send_PWM([surge,sway,yaw,1])
+                self.teensy.send_msg([surge,sway,yaw,1])
+                
             else:
-                self.teensy.send_PWM([surge,sway,yaw,0])
+                self.teensy.send_msg([surge,sway,yaw,0])
 
     def pump_callback(self, request, response):
         # Do your reset logic here
