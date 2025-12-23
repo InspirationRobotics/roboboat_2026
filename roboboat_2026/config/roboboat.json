@@ -1,0 +1,9 @@
+{
+    "teensy": {"port": "/devices/platform/3610000.xhci/usb1/1-2/1-2.4/1-2.4:1.0/tty/ttyACM0", "rate" : 115200},
+    "ball_launcher": {"port": "/devices/platform/3610000.xhci/usb1/1-2/1-2.2/1-2.2.2/1-2.2.2:1.0/tty/ttyACM1", "rate" : 9600},
+    "gps": {"port": "/devices/platform/3610000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/ttyUSB0/tty/ttyUSB0", "rate" : 115200},
+    "oakd_lr": {"id": "18443010012C48F500"},
+    "web_came": {"port": "/devices/platform/3610000.xhci/usb1/1-2/1-2.2/1-2.2.3/1-2.2.3:1.0/video4linux/video0"}
+
+
+}
