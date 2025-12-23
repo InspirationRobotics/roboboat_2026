@@ -64,6 +64,7 @@ class TeensyNode(Node):
             'toggle_water_pump',
             self.pump_callback
         )
+        # to test service in cli: ros2 service call /toggle_water_pump std_srvs/srv/Trigger "{}"
 
         # self.GPSThread.start() No GPS reading for Barco Polo
 
@@ -86,7 +87,7 @@ class TeensyNode(Node):
             else:
                 self.teensy.send_PWM([surge,sway,yaw,0])
 
-    def pump_callback(self, response):
+    def pump_callback(self, request, response):
         # Do your reset logic here
         self.get_logger().info('Pump triggered')
 
