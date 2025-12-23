@@ -2,7 +2,7 @@
 
 for sysdevpath in $(find /sys/bus/usb/devices/usb*/ -name dev); do
 (
-    syspath="${sysdevpath%/dev}"
+    syspath="$(dirname "$sysdevpath")"
     devname="$(udevadm info -q name -p "$syspath")"
 
     [[ "$devname" == "bus/"* ]] && exit
