@@ -142,7 +142,7 @@ class TeensyNode(Node):
 
     def destroy_node(self):
         self.get_logger().info("Stopping thrusters...")
-        self.teensy.send_PWM([0,0,0])
+        self.teensy.send_msg([0,0,0,0])
         self.GPSThread.join(timeout=1)
         super().destroy_node()
 
