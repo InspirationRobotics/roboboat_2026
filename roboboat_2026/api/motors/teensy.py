@@ -10,7 +10,7 @@ import time
 
 
 class Teensy:
-    def __init__(self, port="/dev/ttyACM1", baudrate=115200):
+    def __init__(self, port="/dev/ttyACM0", baudrate=115200):
         self.port = serial.Serial(port=port, baudrate=baudrate, timeout=0.1)
         self.lock = Lock()
         self.send_msg([0,0,0,0])  # surge,sway,yaw,activate_pump (1 to activate 0 to deactivate)
