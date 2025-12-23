@@ -2,6 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32, Float32MultiArray
+from std_srvs.srv import Trigger
 from sensor_msgs.msg import NavSatFix, NavSatStatus
 from threading import Thread, Lock
 import serial
@@ -54,19 +55,13 @@ class TeensyNode(Node):
             10
         )
 
-        self.publisher = self.create_publisher(
-            NavSatFix,
-            '/teensy/GPS',
-            10
+        self.srv = self.create_service(
+            Trigger,
+            'toggle_water_pump',
+            self.pump_callback
         )
 
-        self.heading_pub = self.create_publisher(
-            Float32,
-            '/teensy/heading',
-            10
-        )
-
-        self.GPSThread.start()
+        # self.GPSThread.start() No GPS reading for Barco Polo
 
     def listener_callback(self, msg):
         """
@@ -83,7 +78,14 @@ class TeensyNode(Node):
         self.logger.info(f"pwm: {[surge,sway,yaw]}")
         self.teensy.send_PWM([surge,sway,yaw])
 
+    def pump_callback(self, response):
+        # Do your reset logic here
+        self.get_logger().info('Pump triggered')
 
+        response.success = True
+        response.message = 'Pump triggered successfully'
+        return response
+    
     def parseGPS(self, line: str):
         """Parse GPS data lat,lon,heading,velocity with error handling"""
         try:
