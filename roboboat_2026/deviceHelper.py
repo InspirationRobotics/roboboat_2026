@@ -182,31 +182,36 @@ def findFromId(ids):
 
 
 def dataFromConfig(name):
-    """Obtain the configurations of a device based on the name of the device"""
-    # Look at configs of roboboat for a full picture
-    data = None
-    usbID = None
-    if name == "ball_launcher":
-        data = variables.get("ball_launcher")
-    elif name == "gps":
-        data = variables.get("gps")
-    elif name == "teensy":
-        usbID = variables.get("teensy")
-    elif name == "oakd_lr":
-        usbID = variables.get("oakd_lr")
-    elif name == "web_came":
-        usbID = variables.get("web_came")
-    else:
-        data = variables.get(name)
-        if data == None:
-            raise Exception("Invalid Name")
-    if data != None:
-        return data
-    if usbID == None:
-        print("id not found")
-        return None  # id is not on sub so leave it
-    print(f"USB ID: {usbID}")
-    return findFromId([usbID])
+    """Obtain the configuration or resolved device path for a device by name."""
+    device_cfg = variables.get(name)
+    if device_cfg is None:
+        raise Exception("Invalid Name")
+
+    # Serial devices with a 'port' in the JSON
+    if name in ("teensy", "ball_launcher", "gps"):
+        platform_path = device_cfg.get("port")
+        if platform_path is None:
+            print("id not found")
+            return None
+        print(f"Platform path for {name}: {platform_path}")
+        # Resolve to /dev/tty* using findFromId
+        return findFromId([platform_path])
+
+    # Oak-D: return its ID (findCam or depthai will use this elsewhere)
+    if name == "oakd_lr":
+        cam_id = device_cfg.get("id")
+        if cam_id is None:
+            print("id not found")
+            return None
+        return cam_id
+
+    # USB webcam: return its platform 'port' (likely consumed by findCam or similar)
+    if name == "web_came":
+        return device_cfg.get("port")
+
+    # Fallback: return raw dict
+    return device_cfg
+
 
 
 if __name__ == "__main__":
