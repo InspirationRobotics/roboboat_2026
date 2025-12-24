@@ -67,7 +67,7 @@ def findFromId(ids):
             config_base = platform_id
             # actual: "/devices/.../1-2.4:1.0/tty/ttyACM5"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
             actual_base = dev_platform.rsplit('/', 2)[0]
-            actual_base_full = actual_base[:-3]
+            actual_base_full = actual_base[:-4]
             # DEBUGGING STEP: line temporarily to see exact values
             print(f"Comparing: '{config_base}' == '{actual_base_full}'") 
             
