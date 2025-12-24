@@ -214,5 +214,5 @@ if __name__ == "__main__":
     When running the script directly, get the configuration of the device 
     using a command line argument that is the name of the device
     """
-    
-    print(dataFromConfig(sys.argv[1]))
+    print(dataFromConfig("teensy"))
+    # print(dataFromConfig(sys.argv[1]))
