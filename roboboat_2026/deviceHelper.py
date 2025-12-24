@@ -22,7 +22,7 @@ file_dir = os.path.dirname(os.path.abspath(__file__)) # Obtain the file director
 # Load the configuration of Barco Polo/Charlie
 hostname = platform.node()
 print(f"Hostname is: {hostname}")
-variables = load_json(f"{file_dir}/../../config/roboboat.json")
+variables = load_json(f"{file_dir}/config/roboboat.json")
     
 def findFromId(ids):
     """
