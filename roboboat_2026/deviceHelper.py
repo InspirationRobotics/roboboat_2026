@@ -70,13 +70,13 @@ def findFromId(ids):
 
             # actual: "/devices/.../1-2.4:1.0/tty/ttyACM5"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
             # We strip off the last character (the number) from the actual found path
-            actual_base = dev_platform[:-1]
-            
+            actual_base = dev_platform.rsplit('/', 2)[0]
+            actual_base_full = actual_base[:-4]
             # DEBUGGING STEP: line temporarily to see exact values
-            print(f"Comparing: '{config_base}' == '{actual_base}'") 
+            print(f"Comparing: '{config_base}' == '{actual_base_full}'") 
             
             # Exact match on stable hardware topology (ignores ACM0 vs ACM5)
-            if config_base == actual_base:
+            if config_base == actual_base_full:
                 result[index] = dev_path
                 break  # Found match for this device, move to next id
 
