@@ -45,26 +45,28 @@ def findFromId(ids):
     # decoding loop - matches up to /tty/ttyACM (excludes volatile port number)
     for index, platform_id in enumerate(ids):
         result.append("")  # placeholder for this id - will be replaced if found
-
-        # Scan each line from usbLink.sh output
         for line in bashSplit:
             # Skip non-tty lines (cameras, etc. handled by findCam)
             if "/dev/tty" not in line:
                 continue
+            
+            # Remove any trailing newline or carriage return chars from the line
+            line = line.strip()
 
             # Parse line format: "/dev/ttyACM0 - /devices/platform/.../tty/ttyACM0"
             parts = line.split(" - ", 1)  # Split once on first " - "
             if len(parts) != 2:  # Skip malformed lines
                 continue
 
-            dev_path, dev_platform = parts[0], parts[1]  # dev_path="/dev/ttyACM0"
+            dev_path, dev_platform_full = parts[0], parts[1]  # dev_path="/dev/ttyACM0", dev_platform_full="/devices/platform/.../tty/ttyACM0"
 
-            # Strip volatile port number from both config and usbLink.sh output
-            # config:  "/devices/.../1-2.4:1.0/tty/ttyACM0"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
+            # Strip volatile port number from config path (e.g., removes '0' from '...ACM0')
             config_base = platform_id.rsplit('/', 1)[0]
-            # actual: "/devices/.../1-2.4:1.0/tty/ttyACM5"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
-            actual_base = dev_platform.rsplit('/', 1)[0]
-            # DEBUGGING STEP: line temporarily to see exact values
+            
+            # Strip volatile port number from actual path output (e.g., removes '0' from '...ACM0')
+            actual_base = dev_platform_full.rsplit('/', 1)[0]
+            
+            # The print statement that was in your image was incorrect previously, use this:
             print(f"Comparing: '{config_base}' == '{actual_base}'") 
             
             # Exact match on stable hardware topology (ignores ACM0 vs ACM5)
@@ -87,68 +89,6 @@ def findFromId(ids):
     # Return first (and typically only) matched device
     print(f"Find port {result[0]}")
     return result[0]
-
-# def findFromIdTest(ids):
-#     """
-#     Finds USB serial device paths (/dev/tty*) by matching platform paths from JSON config 
-#     against usbLink.sh output. Ignores volatile port numbers (ACM0, USB0, etc.).
-    
-#     Args:
-#         ids: List of platform paths from JSON like ["/devices/.../tty/ttyACM0"]
-    
-#     Returns:
-#         str: First matching device path (e.g., "/dev/ttyACM0") or None if not found
-#     """
-#     print(f"Starting findFromId for {ids}")
-    
-#     # Execute usbLink.sh to get current USB device mapping (format: "DEVICE - PLATFORM_PATH")
-#     bash = os.popen("bash /root/rb_ws/src/roboboat_2026/roboboat_2026/usbLink.sh").read()
-#     bashSplit = bash.split("\n")  # Split into individual device lines
-#     result = []  # Will hold matched device paths, one per input id
-
-#     # decoding loop - matches up to /tty/ttyACM (excludes volatile port number)
-#     for index, platform_id in enumerate(ids):
-#         result.append("")  # placeholder for this id - will be replaced if found
-
-#         # Scan each line from usbLink.sh output
-#         for line in bashSplit:
-#             # Skip non-tty lines (cameras, etc. handled by findCam)
-#             if "/dev/tty" not in line:
-#                 continue
-
-#             # Parse line format: "/dev/ttyACM0 - /devices/platform/.../tty/ttyACM0"
-#             parts = line.split(" - ", 1)  # Split once on first " - "
-#             if len(parts) != 2:  # Skip malformed lines
-#                 continue
-
-#             dev_path, dev_platform = parts[0], parts[1]  # dev_path="/dev/ttyACM0"
-
-#             # Strip volatile port number from both config and usbLink.sh output
-#             # config:  "/devices/.../1-2.4:1.0/tty/ttyACM0"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
-#             config_base = platform_id.rsplit('/', 1)[0]
-#             # actual: "/devices/.../1-2.4:1.0/tty/ttyACM5"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
-#             actual_base = dev_platform.rsplit('/', 1)[0]
-            
-#             # Exact match on stable hardware topology (ignores ACM0 vs ACM5)
-#             if config_base == actual_base:
-#                 result[index] = dev_path
-#                 break  # Found match for this device, move to next id
-
-#     # Clean up: remove empty entries (devices not found)
-#     # Note: reversed() prevents index shifting during removal
-#     for i in reversed(result):
-#         if i == "":
-#             result.remove(i)
-    
-#     # No devices found - show full usbLink.sh output for debugging
-#     if len(result) == 0:
-#         print(bash)
-#         print("Device not found, above is list of all available devices")
-#         return None
-    
-#     # Return first (and typically only) matched device
-#     print(f"Find port {result[0]}")
-#     return result[0]
 
 # def findCam(ids):
 #     """To find cameras based on their IDs"""
