@@ -61,11 +61,11 @@ def findFromId(ids):
 
             # Strip volatile port number from both config and usbLink.sh output
             # config:  "/devices/.../1-2.4:1.0/tty/ttyACM0"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
-            # config_base = platform_id.rsplit('/', 1)[0] [NOTE] Original line
-            config_base = platform_id[:-1]
+            config_base = platform_id.rsplit('/', 1)[0]
             # actual: "/devices/.../1-2.4:1.0/tty/ttyACM5"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
-            # actual_base = dev_platform.rsplit('/', 1)[0] [NOTE] Original line
-            actual_base = dev_platform[:-1]
+            actual_base = dev_platform.rsplit('/', 1)[0]
+            # DEBUGGING STEP: line temporarily to see exact values
+            print(f"Comparing: '{config_base}' == '{actual_base}'") 
             
             # Exact match on stable hardware topology (ignores ACM0 vs ACM5)
             if config_base == actual_base:
