@@ -64,9 +64,9 @@ def findFromId(ids):
 
             # Strip volatile port number from both config and usbLink.sh output
             # config:  "/devices/.../1-2.4:1.0/tty/ttyACM0"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
-            config_base = platform_id.rsplit('/', 1)[0]
+            config_base = platform_id[:-1]
             # actual: "/devices/.../1-2.4:1.0/tty/ttyACM5"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
-            actual_base = dev_platform.rsplit('/', 1)[0]
+            actual_base = dev_platform.rsplit('/', 2)[0]
             # DEBUGGING STEP: line temporarily to see exact values
             print(f"Comparing: '{config_base}' == '{actual_base}'") 
             
