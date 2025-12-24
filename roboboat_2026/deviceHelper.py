@@ -45,6 +45,8 @@ def findFromId(ids):
     # decoding loop - matches up to /tty/ttyACM (excludes volatile port number)
     for index, platform_id in enumerate(ids):
         result.append("")  # placeholder for this id - will be replaced if found
+
+        # Scan each line from usbLink.sh output
         for line in bashSplit:
             # Skip non-tty lines (cameras, etc. handled by findCam)
             if "/dev/tty" not in line:
@@ -52,21 +54,20 @@ def findFromId(ids):
             
             # Remove any trailing newline or carriage return chars from the line
             line = line.strip()
-
+            
             # Parse line format: "/dev/ttyACM0 - /devices/platform/.../tty/ttyACM0"
             parts = line.split(" - ", 1)  # Split once on first " - "
             if len(parts) != 2:  # Skip malformed lines
                 continue
 
-            dev_path, dev_platform_full = parts[0], parts[1]  # dev_path="/dev/ttyACM0", dev_platform_full="/devices/platform/.../tty/ttyACM0"
+            dev_path, dev_platform = parts[0], parts[1]  # dev_path="/dev/ttyACM0"
 
-            # Strip volatile port number from config path (e.g., removes '0' from '...ACM0')
+            # Strip volatile port number from both config and usbLink.sh output
+            # config:  "/devices/.../1-2.4:1.0/tty/ttyACM0"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
             config_base = platform_id.rsplit('/', 1)[0]
-            
-            # Strip volatile port number from actual path output (e.g., removes '0' from '...ACM0')
-            actual_base = dev_platform_full.rsplit('/', 1)[0]
-            
-            # The print statement that was in your image was incorrect previously, use this:
+            # actual: "/devices/.../1-2.4:1.0/tty/ttyACM5"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
+            actual_base = dev_platform.rsplit('/', 1)[0]
+            # DEBUGGING STEP: line temporarily to see exact values
             print(f"Comparing: '{config_base}' == '{actual_base}'") 
             
             # Exact match on stable hardware topology (ignores ACM0 vs ACM5)
