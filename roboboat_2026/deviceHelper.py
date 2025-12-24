@@ -186,16 +186,16 @@ def dataFromConfig(name):
     # Look at configs of roboboat for a full picture
     data = None
     usbID = None
-    if name == "OakD":
-        data = variables.get("forwardOak_camera_mxid")
-    elif name == "USB_cam":
-        data = variables.get("forward_camera_port")
+    if name == "ball_launcher":
+        data = variables.get("ball_launcher")
+    elif name == "gps":
+        data = variables.get("gps")
     elif name == "teensy":
-        usbID = variables.get("teensy_port")
-    elif name == "fog":
-        usbID = variables.get("fog_port")
-    elif name == "imu":
-        usbID = variables.get("imu_port")
+        usbID = variables.get("teensy")
+    elif name == "oakd_lr":
+        usbID = variables.get("oakd_lr")
+    elif name == "web_came":
+        usbID = variables.get("web_came")
     else:
         data = variables.get(name)
         if data == None:
