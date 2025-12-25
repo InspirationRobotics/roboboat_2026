@@ -3,20 +3,24 @@ import rclpy
 import math
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
-from std_srvs.srv import Trigger # Service to trigger an origin reset
+from nav_msgs.msg import Odometry
+from std_srvs.srv import Trigger
 
 class OdometryNode(Node):
     def __init__(self):
-        super().__init__("OdometryNode")
+        super().__init__("odometry_node")
 
-        # Publisher for local X, Y coordinates
+        # Constant Z value for 2D ground plane
+        self.Z_COORDINATE = 0.0
+
+        # Publisher for Odometry
         self.publisher_ = self.create_publisher(
-            Float32MultiArray, 
-            "/local_xy", 
+            Odometry, 
+            "/odom", 
             10
         )
 
-        # Subscriber for GPS
+        # Subscriber for GPS [lat, lon, heading]
         self.subscription = self.create_subscription(
             Float32MultiArray,
             "/GPS",
@@ -24,75 +28,92 @@ class OdometryNode(Node):
             10
         )
 
-        # Service to manually reset the origin to the next GPS point
+        # Service to manually reset the origin
         self.srv = self.create_service(Trigger, 'reset_origin', self.reset_origin_callback)
 
-        # Variables to store the origin
+        # Origin coordinates (None until first GPS message received)
         self.lat0 = None
         self.lon0 = None
         
-        self.get_logger().info("Odometry Node started. The first GPS fix will set the (0,0) origin.")
+        self.get_logger().info(f"Odometry Node started. Z constant set to {self.Z_COORDINATE}.")
 
     def set_origin(self, lat, lon):
-        """
-        Sets the reference point for all future XY conversions.
-        """
+        """Defines the reference point for (0,0) local coordinates."""
         self.lat0 = lat
         self.lon0 = lon
-        self.get_logger().info(f"--- ORIGIN SET --- Lat: {lat:.6f}, Lon: {lon:.6f} -> (0.0, 0.0)")
+        self.get_logger().info(f"--- ORIGIN SET --- Lat: {lat:.6f}, Lon: {lon:.6f}")
 
     def reset_origin_callback(self, request, response):
-        """
-        Allows resetting the origin via ROS service: 'ros2 service call /reset_origin std_srvs/srv/Trigger'
-        """
+        """Allows resetting the origin via ROS service call."""
         self.lat0 = None
         self.lon0 = None
         response.success = True
         response.message = "Origin cleared. Next GPS message will set a new (0,0)."
         return response
 
+    def get_quaternion_from_euler(self, yaw):
+        """Converts yaw (radians) to a ROS 2 quaternion."""
+        return {
+            'x': 0.0,
+            'y': 0.0,
+            'z': math.sin(yaw / 2.0),
+            'w': math.cos(yaw / 2.0)
+        }
+
     def latlon_to_xy_meters(self, lat, lon):
-        """
-        Convert GPS (lat, lon) to local x,y meters (East, North) 
-        relative to origin (lat0, lon0).
-        """
+        """Standard Equirectangular projection for small local areas."""
         R = 6371000 # Earth radius in meters
-        
         phi = math.radians(lat)
         lmd = math.radians(lon)
         phi0 = math.radians(self.lat0)
         lmd0 = math.radians(self.lon0)
         
-        dphi = phi - phi0
-        dlmd = lmd - lmd0
-        
-        # x = Easting (Longitude difference), y = Northing (Latitude difference)
-        x = R * math.cos(phi0) * dlmd
-        y = R * dphi
-    
+        # x = Easting, y = Northing
+        x = R * math.cos(phi0) * (lmd - lmd0)
+        y = R * (phi - phi0)
         return x, y
 
     def gps_callback(self, msg: Float32MultiArray):
-        if len(msg.data) < 2:
-            self.get_logger().warn("Received GPS message with insufficient data")
+        if len(msg.data) < 3:
+            self.get_logger().warn("GPS message needs [lat, lon, heading]")
             return
 
-        lat = msg.data[0]
-        lon = msg.data[1]
+        lat, lon, heading = msg.data[0], msg.data[1], msg.data[2]
 
-        # Use the set_origin function if it's not yet established
+        # Handle origin initialization
         if self.lat0 is None or self.lon0 is None:
             self.set_origin(lat, lon)
 
-        # Convert to local XY
+        # Coordinate conversion
         x, y = self.latlon_to_xy_meters(lat, lon)
+        
+        # Initialize Odometry message
+        odom_msg = Odometry()
+        odom_msg.header.stamp = self.get_clock().now().to_msg()
+        odom_msg.header.frame_id = "odom"
+        odom_msg.child_frame_id = "base_link"
 
-        # Create and publish the message
-        xy_msg = Float32MultiArray()
-        xy_msg.data = [x, y]
-        self.publisher_.publish(xy_msg)
+        # 1. Set Position (Z is constant)
+        odom_msg.pose.pose.position.x = x
+        odom_msg.pose.pose.position.y = y
+        odom_msg.pose.pose.position.z = self.Z_COORDINATE
 
-        self.get_logger().info(f"Local Position: X={x:.2f}m, Y={y:.2f}m")
+        # 2. Set Orientation
+        yaw = math.radians(heading)
+        q = self.get_quaternion_from_euler(yaw)
+        odom_msg.pose.pose.orientation.x = q['x']
+        odom_msg.pose.pose.orientation.y = q['y']
+        odom_msg.pose.pose.orientation.z = q['z']
+        odom_msg.pose.pose.orientation.w = q['w']
+
+        # 3. Add small covariance to prevent errors in filters (Optional but recommended)
+        # 6x6 matrix for Pose [x, y, z, roll, pitch, yaw]
+        odom_msg.pose.covariance[0] = 0.1  # x
+        odom_msg.pose.covariance[7] = 0.1  # y
+        odom_msg.pose.covariance[35] = 0.05 # yaw
+
+        self.publisher_.publish(odom_msg)
+        self.get_logger().info(f"Odom: x={x:.2f}, y={y:.2f}, z={self.Z_COORDINATE}")
 
 def main(args=None):
     rclpy.init(args=args)
