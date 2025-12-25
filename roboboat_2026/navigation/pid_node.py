@@ -23,11 +23,13 @@ class PIDController:
         p = self.kp * error
         
         # Integral
+        # [TODO] Clamp the self.integral value to output limits or implement an "anti-windup" check. 
+        # Otherwise, integral term can grow unbounded upon sustained error.
         self.integral += error * dt
         i = self.ki * self.integral
         
         # Derivative
-        d = self.kd * (error - self.last_error) / dt if dt > 0 else 0.0
+        d = self.kd * (error - self.last_error) / dt if dt > 0.0001 else 0.0
         self.last_error = error
         
         output = p + i + d
@@ -57,7 +59,7 @@ class PIDNode(Node):
 
         # --- Publishers ---
         self.pwm_pub = self.create_publisher(Float32MultiArray, '/teensy/pwm', 10)
-        self.pid_debug_pub = self.create_publisher(Float32MultiArray, '/pid_debug', 10)
+        # self.pid_debug_pub = self.create_publisher(Float32MultiArray, '/pid_debug', 10)
 
         # --- Parameters ---
         self.declare_parameters(
@@ -88,13 +90,21 @@ class PIDNode(Node):
 
         # --- State Variables ---
         self.current_heading = 0.0     # Degrees
-        self.current_vel_surge = 0.0   # m/s
-        self.current_vel_sway = 0.0    # m/s
+        # currently not using velocity feedback, only pose
+        # self.current_vel_surge = 0.0   # m/s
+        # self.current_vel_sway = 0.0    # m/s
+        self.current_pos_surge = 0.0   # m
+        self.current_pos_sway = 0.0    # m
         
-        self.target_heading = 0.0
-        self.target_vel_surge = 0.0
-        self.target_vel_sway = 0.0 
+        self.target_heading = 0.0       # Degrees
+        self.target_pos_surge = 0.0
+        self.target_pos_sway = 0.0
+        # self.target_vel_surge = 0.0
+        # self.target_vel_sway = 0.0 
         
+        # [TODO] Reset last_time to the current time inside the very first callback execution.
+        # If the /odom message or the first timer loop takes a while to start, the first dt will be very large, 
+        # causing a massive spike in the Integral and Derivative terms.
         self.last_time = self.get_clock().now()
         self.timer = self.create_timer(0.05, self.control_loop) # 20Hz
         
@@ -103,16 +113,21 @@ class PIDNode(Node):
     def odom_callback(self, msg: Odometry):
         """Updates current state from Odometry message."""
         
-        # Update Linear Velocities (Surge and Sway)
-        # Assuming odom velocity is in the base_link frame
-        self.current_vel_surge = msg.twist.twist.linear.x
-        self.current_vel_sway = msg.twist.twist.linear.y
+        # Update Position (Surge and Sway)
+        # Assuming odom position is in the base_link frame
+        self.current_pos_surge = msg.pose.pose.position.x
+        self.current_pos_sway = msg.pose.pose.position.y
 
         # Update Orientation (Yaw)
         qx = msg.pose.pose.orientation.x
         qy = msg.pose.pose.orientation.y
         qz = msg.pose.pose.orientation.z
         qw = msg.pose.pose.orientation.w
+
+        # Update Covariance (if needed)
+        # cvx = msg.pose.covariance[0]
+        # cvy = msg.pose.covariance[7]
+        # cvw = msg.pose.covariance[35]
 
         # Convert Quaternion to Euler Yaw
         siny_cosp = 2 * (qw * qz + qx * qy)
@@ -121,10 +136,10 @@ class PIDNode(Node):
         self.current_heading = math.degrees(yaw_rad)
         
     def setpoint_cb(self, msg):
-        """Expects [target_surge_vel, target_sway_vel, target_heading_deg]"""
+        """Expects [target_pos_surge, target_pos_sway, target_heading_deg]"""
         if len(msg.data) >= 3:
-            self.target_vel_surge = msg.data[0]
-            self.target_vel_sway = msg.data[1]
+            self.target_pos_surge = msg.data[0]
+            self.target_pos_sway = msg.data[1]
             self.target_heading = msg.data[2]
 
     def control_loop(self):
@@ -133,21 +148,24 @@ class PIDNode(Node):
         if dt <= 0: return
         self.last_time = now
 
-        # 1. Heading Error Calculation (Wraps -180 to 180)
+        # Heading Error Calculation (Wraps -180 to 180)
         error_yaw = self.target_heading - self.current_heading
         while error_yaw > 180: error_yaw -= 360
         while error_yaw < -180: error_yaw += 360
 
-        # 2. Compute PID Outputs
+        # Compute PID Outputs
         # Surge and Sway use velocity feedback
-        surge_cmd = self.pid_surge.compute(self.target_vel_surge, self.current_vel_surge, dt)
-        sway_cmd = self.pid_sway.compute(self.target_vel_sway, self.current_vel_sway, dt)
+        surge_cmd = self.pid_surge.compute(self.target_pos_surge, self.current_pos_surge, dt)
+        sway_cmd = self.pid_sway.compute(self.target_pos_sway, self.current_pos_sway, dt)
         
         # Yaw uses position feedback (heading)
         # Pass the calculated error directly as the 'setpoint' and 0 as 'measurement'
+        
+        # [TODO] Calculate the error first for everything, or pass target/current for everything.
+        # Otherwise, derivative kick may be inconsistent: tracking "Rate of Error Change" instead of "Rate of Measurement Change."
         yaw_cmd = self.pid_yaw.compute(error_yaw, 0.0, dt)
 
-        # 3. Publish to Thruster/PWM Controller
+        # Publish to Thruster/PWM Controller
         msg = Float32MultiArray()
         msg.data = [float(surge_cmd), float(sway_cmd), float(yaw_cmd)]
         self.pwm_pub.publish(msg)
