@@ -93,12 +93,12 @@ class OdometryNode(Node):
         odom_msg.header.frame_id = "odom"
         odom_msg.child_frame_id = "base_link"
 
-        # 1. Set Position (Z is constant)
+        # Set Position (Z is constant)
         odom_msg.pose.pose.position.x = x
         odom_msg.pose.pose.position.y = y
         odom_msg.pose.pose.position.z = self.Z_COORDINATE
 
-        # 2. Set Orientation
+        # Set Orientation
         yaw = math.radians(heading)
         q = self.get_quaternion_from_euler(yaw)
         odom_msg.pose.pose.orientation.x = q['x']
@@ -106,7 +106,7 @@ class OdometryNode(Node):
         odom_msg.pose.pose.orientation.z = q['z']
         odom_msg.pose.pose.orientation.w = q['w']
 
-        # 3. Add small covariance to prevent errors in filters (Optional but recommended)
+        # Add small covariance to prevent errors in filters
         # 6x6 matrix for Pose [x, y, z, roll, pitch, yaw]
         odom_msg.pose.covariance[0] = 0.1  # x
         odom_msg.pose.covariance[7] = 0.1  # y
