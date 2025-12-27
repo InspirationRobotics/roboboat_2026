@@ -5,6 +5,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32, Float32MultiArray
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Wrench # Optional: Standard message for PID forces
+from navigation.pure_pursuit_node import PurePursuitPlanner
 
 class PIDController:
     """A simple PID helper class with output clamping and basic anti-windup."""
@@ -61,6 +62,10 @@ class PIDNode(Node):
         self.pwm_pub = self.create_publisher(Float32MultiArray, '/teensy/pwm', 10)
         # self.pid_debug_pub = self.create_publisher(Float32MultiArray, '/pid_debug', 10)
 
+        # --- Planner Instance ---
+        # Adjust lookahead (e.g., 1.0m) and wheelbase (e.g., 0.5m) as needed
+        self.planner = PurePursuitPlanner(lookahead_dist=1.0, wheelbase=0.5)
+        
         # --- Parameters ---
         self.declare_parameters(
             namespace='',
@@ -136,11 +141,18 @@ class PIDNode(Node):
         self.current_heading = math.degrees(yaw_rad)
         
     def setpoint_cb(self, msg):
-        """Expects [target_pos_surge, target_pos_sway, target_heading_deg]"""
-        if len(msg.data) >= 3:
-            self.target_pos_surge = msg.data[0]
-            self.target_pos_sway = msg.data[1]
-            self.target_heading = msg.data[2]
+        """
+        If msg.data is a flattened list of points [x1, y1, x2, y2...],
+        convert it to a list of tuples and give it to the planner.
+        """
+        points = []
+        for i in range(0, len(msg.data), 2):
+            points.append((msg.data[i], msg.data[i+1]))
+        
+        if len(points) >= 1:
+            # We add current position as the start to ensure a valid segment exists
+            path = [(self.current_pos_surge, self.current_pos_sway)] + points
+            self.planner.set_path(path)
 
     def control_loop(self):
         now = self.get_clock().now()
@@ -148,30 +160,45 @@ class PIDNode(Node):
         if dt <= 0: return
         self.last_time = now
 
-        # Heading Error Calculation (Wraps -180 to 180)
-        error_yaw = self.target_heading - self.current_heading
+        # Skip if no path is set
+        if not self.planner.path:
+            return
+
+        # --- GET PURE PURSUIT TARGETS ---
+        # Create a simple object or tuple to match what the planner expects
+        class Pose:
+            def __init__(self, x, y):
+                self.x = x
+                self.y = y
+
+        curr_pose = Pose(self.current_pos_surge, self.current_pos_sway)
+        
+        # Get dynamic targets from the planner
+        target_v, target_h = self.planner.get_target_setpoints(curr_pose)
+
+        # --- HEADING ERROR CALCULATION ---
+        # Use target_h from planner instead of self.target_heading
+        error_yaw = target_h - self.current_heading
         while error_yaw > 180: error_yaw -= 360
         while error_yaw < -180: error_yaw += 360
 
-        # Compute PID Outputs
-        # Surge and Sway use velocity feedback
-        surge_cmd = self.pid_surge.compute(self.target_pos_surge, self.current_pos_surge, dt)
-        sway_cmd = self.pid_sway.compute(self.target_pos_sway, self.current_pos_sway, dt)
+        # --- COMPUTE PID OUTPUTS ---
         
-        # Yaw uses position feedback (heading)
-        # Pass the calculated error directly as the 'setpoint' and 0 as 'measurement'
+        # Surge: We use the target velocity as a "Position" setpoint for your PID.
+        # Since your PID is -1 to 1, target_v (0.5) acts as a steady forward command.
+        # As you get closer to the end of the path, you might want to scale this down.
+        surge_cmd = self.pid_surge.compute(target_v, 0.0, dt)
         
-        # [TODO] Calculate the error first for everything, or pass target/current for everything.
-        # Otherwise, derivative kick may be inconsistent: tracking "Rate of Error Change" instead of "Rate of Measurement Change."
+        # Sway: Pure Pursuit doesn't natively use sway. Keep at 0 or use for correction.
+        sway_cmd = 0.0 
+        
+        # Yaw: Use the error calculated from the planner's heading
         yaw_cmd = self.pid_yaw.compute(error_yaw, 0.0, dt)
 
-        # Publish to Thruster/PWM Controller
+        # --- PUBLISH ---
         msg = Float32MultiArray()
         msg.data = [float(surge_cmd), float(sway_cmd), float(yaw_cmd)]
         self.pwm_pub.publish(msg)
-
-        # Optional: Log current state for tuning
-        # self.get_logger().info(f"Surge Error: {self.target_vel_surge - self.current_vel_surge:.2f} | Yaw Error: {error_yaw:.2f}")
 
 def main(args=None):
     rclpy.init(args=args)
