@@ -101,7 +101,7 @@ class GPSFusion(Node):
         # Subscriber
         self.gps_sub = self.create_subscription(
             Float32MultiArray,
-            '/gps/data',  # TODO: Replace with your GPS topic
+            '/GPS',  # TODO: Replace with your GPS topic
             self.gps_callback,
             10
         )
