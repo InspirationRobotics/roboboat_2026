@@ -29,7 +29,7 @@ class OdometryNode(Node):
         )
 
         # Service to manually reset the origin
-        self.srv = self.create_service(Trigger, 'reset_origin', self.reset_origin_callback)
+        self.srv = self.create_service(Trigger, 'reset_origin', self.reset_origin_callback) # do this in cli: ros2 service call /reset_origin std_srvs/srv/Trigger "{}"
 
         # Origin coordinates (None until first GPS message received)
         self.lat0 = None
