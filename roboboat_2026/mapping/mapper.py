@@ -12,7 +12,7 @@ import os
 import sys
 from filterpy.kalman import KalmanFilter
 sys.path.insert(1, '../perception/')
-from src.read_yaml import extract_configuration
+# from roboboat_2026.src.read_yaml import extract_configuration
 import math
 import argparse
 
@@ -21,16 +21,16 @@ class LandmarkMapper(Node):
         super().__init__('landmark_mapper')
         self.simulate = simulate
 
-        config_file = extract_configuration()
-        if config_file is None:
-            self.get_logger().error("Failed to extract configuration file.")
-            return
+        #config_file = extract_configuration()
+        #if config_file is None:
+            #self.get_logger().error("Failed to extract configuration file.")
+            #return
 
         self.odom_sub = self.create_subscription(
-            Odometry, '/Odometry', self.odom_callback, 10)
+            Odometry, '/odom', self.odom_callback, 10)
 
         self.detections_sub = self.create_subscription(
-            Detection3DArray, '/bbox3d', self.detections_callback, 10)
+            Detection3DArray, '/oak/nn/spatial_detections', self.detections_callback, 10)
 
         self.marker_pub = self.create_publisher(MarkerArray, '/landmark_markers', 10)
         self.map_pub = self.create_publisher(String, '/landmark_map', 10)
@@ -49,16 +49,19 @@ class LandmarkMapper(Node):
             [6.770867890677844, 0.6694984520856926], 
             ]
             }
+        self.current_position= np.array([0,0,0])
+        self.has_odom = False
         self.timer = self.create_timer(10.0, self.publish_and_save_map)
 
     def odom_callback(self, msg):
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
 
-        q = msg.pose.pose.orientation
-        siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
-        cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
-        theta = np.arctan2(siny_cosp, cosy_cosp)
+        self.current_position = np.array([x,y,0])
+        heading = msg.pose.pose.orientation.z
+
+        
+        theta = heading # in radians
 
         cos_theta = np.cos(theta)
         sin_theta = np.sin(theta)
@@ -68,6 +71,8 @@ class LandmarkMapper(Node):
             [sin_theta,  cos_theta, y],
             [0,          0,         1]
         ])
+        if not self.has_odom:
+            self.has_odom = True
         
     def evaluate_map_error(self):
         total_error = 0.0
@@ -102,19 +107,23 @@ class LandmarkMapper(Node):
 
 
     def detections_callback(self, msg):
+        # print(self.has_odom)
+        if not self.has_odom:
+            return
+        
         X_THRESHOLD = 2 # meters
         Y_THRESHOLD = 3  # meters
 
         for det in msg.detections:
-            cx = det.bbox.center.position.x
-            cy = det.bbox.center.position.y
+            cx = det.results[0].pose.pose.position.x 
+            cy = det.results[0].pose.pose.position.x 
             class_id = int(det.results[0].hypothesis.class_id)
 
             if class_id != 11 and class_id != 16:
                 continue
 
             point_lidar = np.array([cx, cy, 1.0])
-            global_pos = self.current_pose @ point_lidar
+            global_pos = self.current_pose @ point_lidar + self.current_position
             global_pos = global_pos[:2]
 
             if class_id not in self.map:
@@ -125,8 +134,8 @@ class LandmarkMapper(Node):
                 for kf in self.map[class_id]:
                     pred = kf.x[:2]
                     # Only match if y is close (aligned along x-axis)
-                    # if np.linalg.norm(pred - global_pos) < 1.0:
-                    if abs(pred[0] - global_pos[0]) < 0.8 or (abs(pred[0] - global_pos[0]) < X_THRESHOLD and abs(pred[1] - global_pos[1]) < Y_THRESHOLD):
+                    if np.linalg.norm(pred - global_pos) < 0.5:
+                    #if abs(pred[0] - global_pos[0]) < 0.8 or (abs(pred[0] - global_pos[0]) < X_THRESHOLD and abs(pred[1] - global_pos[1]) < Y_THRESHOLD):
                         kf.predict()
                         kf.update(global_pos)
                         matched = True
@@ -162,7 +171,7 @@ class LandmarkMapper(Node):
                 pos = kf.x[:2]
                 # pos = kf
                 marker = Marker()
-                marker.header.frame_id = "camera_init"
+                marker.header.frame_id = "odom"
                 marker.header.stamp = self.get_clock().now().to_msg()
                 marker.ns = f"landmark_{class_id}"
                 marker.id = marker_id
@@ -170,8 +179,6 @@ class LandmarkMapper(Node):
                 marker.action = Marker.ADD
                 marker.pose.position.x = float(pos[0])
                 marker.pose.position.y = float(pos[1])
-                marker.pose.position.z = 0.0
-                marker.pose.orientation.w = 1.0
                 marker.scale.x = 0.2
                 marker.scale.y = 0.2
                 marker.scale.z = 0.2
@@ -193,23 +200,21 @@ class LandmarkMapper(Node):
                 marker_id += 1
 
         marker = Marker()
-        marker.header.frame_id = "camera_init"
+        marker.header.frame_id = "odom"
         marker.header.stamp = self.get_clock().now().to_msg()
         marker.ns = "self_pose"
         marker.id = 0
         marker.type = Marker.MESH_RESOURCE
         marker.action = Marker.ADD
-        yaw_rad = math.pi / 2
-        marker.pose.position.x = float(self.current_pose[0, 2])
-        marker.pose.position.y = float(self.current_pose[1, 2])
-        marker.pose.orientation.z = math.sin(yaw_rad / 2)  # ~0.7071
-        marker.pose.orientation.w = math.cos(yaw_rad / 2)  # ~0.7071
+        # yaw_rad = math.pi / 2
+        marker.pose.position.x = float(self.current_position[0])
+        marker.pose.position.y = float(self.current_position[1])
 
-        marker.scale.x = 0.05
-        marker.scale.y = 0.05
-        marker.scale.z = 0.05
+        marker.scale.x = 1.0
+        marker.scale.y = 1.0
+        marker.scale.z = 1.0
 
-        marker.mesh_resource = "package://perception/boat.dae" # TODO: Set up dae file and remove hard-coded path 
+        marker.mesh_resource = "package://mapping/boat.dae" # TODO: Set up dae file and remove hard-coded path 
         marker.mesh_use_embedded_materials = True
 
         marker.color.r = 0.0

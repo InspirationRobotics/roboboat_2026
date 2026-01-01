@@ -114,12 +114,7 @@ class LidarCameraProjectionNode(Node):
 
         self.latest_image = None
         if self.visualize:
-            self.image_sub = self.create_subscription(
-                Image,
-                image_topic,
-                self.image_callback,
-                10
-            )
+            self.image_sub = self.create_subscription(Image,image_topic,self.image_callback,10)
             projected_topic = config_file['camera']['projected_topic']
             self.pub_image = self.create_publisher(Image, projected_topic, 1)
         self.pub_centr = self.create_publisher(Float32MultiArray, '/centroids', 1)

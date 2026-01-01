@@ -6,32 +6,33 @@ Before developing ANY code, please read the [format](#format) section thoroughly
 As of the time of writing (3/8/2025), the repository will utilize the following format in order to organize effectively.
 
 ```bash
-RoboBoat_2026
-|-- API
-|    | -- Camera
+roboboat_2026
+|-- api
+|    | -- camera
 |    |     | -- # Here is all of the low-level camera functionality.
-|    | -- GPS
+|    | -- gps
 |    |     | -- # Here are all of the low-level GPS functionalities.
-|    | -- IMU
+|    | -- imu
 |    |     | -- # Here is all of the low-level IMU functionality.
-|    | -- Motors
+|    | -- motors
 |    |     | -- # Here is all of the low-level motor code.
-|    | -- Actuators
+|    | -- servos
 |    |     | -- # Currently not developed, projected place to have the low-level control code for the racketball launcher and water cannon.
-|    | -- Util
+|    | -- util
 |    |     | -- # Here is all of the low-level functionality used across multiple sensors/devices.
-|    
-|-- GNC
-|    | -- Control_Core
-|    |     | -- # All of the code to control the ASV. This is mainly about allowing the ASV to move precisely and accurately.
-|    | -- Guidance_Core
-|    |     | -- # This is the highest level module of the whole codebase -- here are where the high-level mission/waypoint navigation algorithms are located. 
+|     
 |
-|-- Perception
-|    | -- Models
-|    |     | -- # Binary files that contain the weights of pre-trained ML models (YOLO -- .blob or .pt format)
-|    | -- Perception_Core
-|    |     | -- # Handles accessing camera streams, running ML models, and returning actionable results.
+|-- mapping
+|    | -- lidar_camera_projection
+|    |     | -- # project lidar point cloud to camera rgb frame
+|    | -- mapper
+|    |     | -- # use 3d spatial detection and odometry to map mission targets
+|   
+|-- navigation
+|    | -- odom_node
+|    |     | -- # convert GPS to odometry
+|    | -- pid_controller
+|    |     | -- # pid controller
 |   
 |-- Test_Scripts
 |   | -- API_Tests
