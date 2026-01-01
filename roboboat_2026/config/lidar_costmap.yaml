@@ -1,0 +1,9 @@
+lidar_costmap_node:
+  ros__parameters:
+    map_resolution: 0.1           # meters per cell
+    map_width: 100                 # number of cells (X)
+    map_height: 100                # number of cells (Y)
+    density_threshold: 1           # min points per cell to mark as occupied
+    max_cost: 100                  # maximum occupancy cost
+    cost_scaling_factor: 10.0      # scale point density to occupancy cost
+    update_rate: 10.0              # Hz
