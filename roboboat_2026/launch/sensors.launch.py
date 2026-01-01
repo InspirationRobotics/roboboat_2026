@@ -31,6 +31,7 @@ def generate_launch_description():
     # )
 
 
+    # gps node
     gps_node = Node(
         package='roboboat_2026',
         executable='gps_node',
@@ -44,6 +45,9 @@ def generate_launch_description():
         executable='tf_node',
         output='screen'
     )
+
+    # lidar 2d projection
+
 
     return LaunchDescription([
         # livox_launch,
