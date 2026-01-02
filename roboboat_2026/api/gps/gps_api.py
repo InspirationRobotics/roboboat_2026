@@ -191,7 +191,7 @@ class GPS:
 
     def calibrate_heading_offset(self, calib_time: int = 5):
         self.pause_updates = True
-        time.sleep(0.2)  # let GPS thread settle
+        time.sleep(2)  # let GPS thread settle
 
         heading_data = []
         start_time = time.time()
