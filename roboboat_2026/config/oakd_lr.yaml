@@ -6,6 +6,9 @@
       i_nn_type: spatial
       i_pipeline_type: RGBD
       i_mx_id: 18443010012C48F500
+      i_preview_width: 320
+      i_preview_height: 320
+
 
     imu:
       i_acc_freq: 100
@@ -15,4 +18,5 @@
       i_rotation_vector_type: ROTATION_VECTOR
 
     nn:
-      i_nn_config_path: depthai_ros_driver/mobilenet
+      i_nn_config_path: depthai_ros_driver/yolo
+      i_disable_resize: false
