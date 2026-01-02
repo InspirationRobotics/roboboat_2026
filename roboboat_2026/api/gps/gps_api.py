@@ -140,7 +140,6 @@ class GPS:
         parsed_data : NMEAMessage
         while self.active:
             raw_data, parsed_data = self.nmr.read() # Blocking
-            self.raw_heading = self.data.heading
             with self.lock:
                 self.__update_data(parsed_data)
             if self.callback and self.data.is_valid():
