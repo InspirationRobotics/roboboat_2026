@@ -200,7 +200,8 @@ class GPS:
             # data = self.get_data()
             # if data.is_valid():
             #     heading_data.append(data.heading)
-            heading_data.append(self.raw_heading)
+            if self.raw_heading is not None:
+                heading_data.append(self.raw_heading)
             time.sleep(0.2)
 
         if not heading_data:
