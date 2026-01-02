@@ -4,6 +4,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
 from std_srvs.srv import Trigger
 from roboboat_2026.api.gps.gps_api import GPS     # <-- your existing GPS script
+from roboboat_2026.util import deviceHelper
 import threading
 
 
@@ -11,13 +12,16 @@ class GPSNode(Node):
     def __init__(self):
         super().__init__("gps_node")
 
+        self.config = deviceHelper.variables
+        self.port   = deviceHelper.dataFromConfig('gps')
+        self.baurd_rate = self.config.get('gps').get('rate')
         # Publisher
         self.pub = self.create_publisher(Float32MultiArray, "/GPS", 10)
 
         # Initialize GPS (threaded=True)
         self.get_logger().info("Starting GPS...")
-        self.gps = GPS(serialport="/dev/ttyUSB0",
-                       baudrate=115200,
+        self.gps = GPS(serialport=self.port,
+                       baudrate=self.baurd_rate,
                        callback=self.gps_callback,   # GPS will call this when data updates
                        threaded=True)
 
@@ -27,6 +31,7 @@ class GPSNode(Node):
             self.calibrate_callback
         )  # do this in cli: ros2 service call /calibrate_gps std_srvs/srv/Trigger "{}"
         self.get_logger().info("GPS node started.")
+        
     def gps_callback(self, data):
         """Called automatically whenever the GPS thread gets new data."""
         if not data.is_valid():
