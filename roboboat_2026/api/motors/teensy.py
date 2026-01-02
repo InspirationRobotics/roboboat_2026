@@ -57,7 +57,7 @@ class TeensyNode(Node):
             '/teensy/pwm',
             self.listener_callback,
             10
-        )   # to send in cli: ros2 topic pub /teensy/pwm std_msgs/msg/Float32MultiArray "{data: [0.0, 0.0, 0.0]}"
+        )   # to send in cli: ros2 topic pub /teensy/pwm std_msgs/msg/Float32MultiArray "{data: [0.0, 0.0, 0.0, 0]}"
 
         self.srv = self.create_service(
             Trigger,

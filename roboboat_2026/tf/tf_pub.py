@@ -5,13 +5,11 @@ from geometry_msgs.msg import TransformStamped
 import tf2_ros
 import math
 from builtin_interfaces.msg import Time
+from nav_msgs.msg import Odometry
 
 class StaticTransformPublisher(Node):
     def __init__(self):
         super().__init__('tf_publisher_node')
-        
-        # Create the broadcaster
-        self.broadcaster = tf2_ros.StaticTransformBroadcaster(self)
         
         # Create the broadcaster
         self.broadcaster = tf2_ros.TransformBroadcaster(self)
@@ -19,6 +17,13 @@ class StaticTransformPublisher(Node):
         # Publishing rate
         self.timer = self.create_timer(0.1, self.publish_tf)  # 10 Hz
 
+        # Subscribe to odometry and publich base link to odometry tf
+        self.odom_sub = self.create_subscription(
+            Odometry,
+            '/fused/odometry',  
+            self.odom_callback,
+            10
+        )
         self.get_logger().info('TF published')
 
     def pub_oakd(self):
@@ -99,6 +104,27 @@ class StaticTransformPublisher(Node):
     def publish_tf(self):
         self.pub_oakd()
         self.pub_livox()
+        self.pub_map()
+
+    def odom_callback(self, msg):
+        t = TransformStamped()
+        t.header.stamp = self.get_clock().now().to_msg()
+        t.header.frame_id = 'odom'        # Parent frame
+        t.child_frame_id = 'base_link'    # Child frame
+
+        # Fill translation from odometry
+        t.transform.translation.x = msg.pose.pose.position.x
+        t.transform.translation.y = msg.pose.pose.position.y
+        t.transform.translation.z = msg.pose.pose.position.z
+
+        # Fill rotation from odometry (quaternion)
+        t.transform.rotation.x = msg.pose.pose.orientation.x
+        t.transform.rotation.y = msg.pose.pose.orientation.y
+        t.transform.rotation.z = msg.pose.pose.orientation.z
+        t.transform.rotation.w = msg.pose.pose.orientation.w
+
+        # Publish transform
+        self.broadcaster.sendTransform(t)
 
 def main(args=None):
     rclpy.init(args=args)

@@ -137,15 +137,14 @@ class GPS:
         """
         parsed_data : NMEAMessage
         while self.active:
-            raw_data, parsed_data = self.nmr.read()
-
-            with self.pause_lock:
-                if self.pause_updates:
-                    continue
-
+            raw_data, parsed_data = self.nmr.read() # Blocking
+            print(self.data)
             with self.lock:
                 self.__update_data(parsed_data)
-
+            print(self.data)
+            if self.callback and self.data.is_valid():
+                # print(self.data)
+                self.callback(self.data)
 
     def __get_single_data(self) -> GPSData:
         """
@@ -179,8 +178,8 @@ class GPS:
         Returns:
             offset (float): The GPS heading offset.
         """
-        curr_path = Path("API/GPS")
-        config_path = curr_path / "Config"
+        curr_path = Path("/root/rb_ws/src/roboboat_2026/roboboat_2026/api/gps")
+        config_path = curr_path / "config"
         if not config_path.exists():
             os.mkdir(config_path)
         if not (config_path / "gps_offset.txt").exists():
@@ -194,6 +193,8 @@ class GPS:
         time.sleep(2)  # let GPS thread settle
 
         heading_data = []
+        # input("Press Enter to start calibration")
+        print("Calibrating GPS heading offset...")
         start_time = time.time()
 
         while time.time() - start_time < calib_time:
@@ -208,16 +209,24 @@ class GPS:
             return
 
         avg_heading = sum(heading_data) / len(heading_data)
-        offset = -avg_heading  # force current heading to 0
+        print(f"Average heading: {avg_heading}")
+        current_heading = 0#input("Enter current heading: ")
+        offset = float(current_heading) - avg_heading
+        print(f"Offset: {offset}")
+        data = 'y' # input("Save offset? (y/n): ")
+        if data.lower() == "y":
+            curr_path = Path("/root/rb_ws/src/roboboat_2026/roboboat_2026/api/gps")
+            config_path = curr_path / "config"
+            if not config_path.exists():
+                os.mkdir(config_path)
+            with open(config_path / "gps_offset.txt", "w") as f:
+                f.write(str(offset))
+                print("Offset saved.")
 
         with self.lock:
             self.offset = offset
-            self.data.heading = 0.0  # IMMEDIATE visible effect
-
-        self.pause_updates = False
-        print(f"GPS calibrated. Offset = {offset}")
-
-            
+        print("Calibration complete.")
+        
     def save_waypoints(self):
         """
         Method to save current waypoints in a log (.txt) file. Will open a file in the Test_Scripts/GPS_Tests directory.
