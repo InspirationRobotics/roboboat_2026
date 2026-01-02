@@ -4,6 +4,7 @@ __pycache__/
 venv/
 rosbags/
 
+*.txt
 *.pt
 *.mp4
 *.h265
