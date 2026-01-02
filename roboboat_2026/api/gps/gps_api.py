@@ -77,6 +77,7 @@ class GPS:
         self.callback = callback
         self.offset = offset if offset is not None else self.load_heading_offset()
 
+        self.raw_heading = None
         self.data : GPSData = GPSData(None, None, None)
         self.lock = Lock()
 
@@ -109,6 +110,7 @@ class GPS:
                     self.data.lat = parsed_data.lat
                     self.data.lon = parsed_data.lon
             elif parsed_data.msgID == 'THS':
+                    self.raw_heading = parsed_data.headt
                     self.data.heading = (parsed_data.headt + self.offset) % 360
         except Exception as e:
             # print("Error grabbing data")
@@ -138,10 +140,9 @@ class GPS:
         parsed_data : NMEAMessage
         while self.active:
             raw_data, parsed_data = self.nmr.read() # Blocking
-            print(self.data)
+            self.raw_heading = self.data.heading
             with self.lock:
                 self.__update_data(parsed_data)
-            print(self.data)
             if self.callback and self.data.is_valid():
                 # print(self.data)
                 self.callback(self.data)
@@ -197,9 +198,10 @@ class GPS:
         start_time = time.time()
 
         while time.time() - start_time < calib_time:
-            data = self.get_data()
-            if data.is_valid():
-                heading_data.append(data.heading)
+            # data = self.get_data()
+            # if data.is_valid():
+            #     heading_data.append(data.heading)
+            heading_data.append(self.raw_heading)
             time.sleep(0.2)
 
         if not heading_data:
@@ -208,10 +210,10 @@ class GPS:
             return
 
         avg_heading = sum(heading_data) / len(heading_data)
-        print(f"Average GPS heading: {avg_heading}")
+        print(f"Average raw GPS heading: {avg_heading}")
         
         # FIX: Actually get the true heading from user input
-        current_heading = float(input("Enter the TRUE current heading (0-360°): "))
+        current_heading = 0 # float(input("Enter the TRUE current heading (0-360°): "))
         
         # Calculate offset: true_heading - measured_heading
         offset = (current_heading - avg_heading) % 360
@@ -221,7 +223,7 @@ class GPS:
             offset -= 360
         
         print(f"Calculated offset: {offset}")
-        data = input("Save offset? (y/n): ")
+        data = "y" # input("Save offset? (y/n): ")
         if data.lower() == "y":
             curr_path = Path("/root/rb_ws/src/roboboat_2026/roboboat_2026/api/gps")
             config_path = curr_path / "config"
