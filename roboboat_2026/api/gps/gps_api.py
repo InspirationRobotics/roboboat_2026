@@ -80,6 +80,9 @@ class GPS:
         self.data : GPSData = GPSData(None, None, None)
         self.lock = Lock()
 
+        self.pause_updates = False
+        self.pause_lock = Lock()
+
         self.active = True
         self.gps_thread = Thread(target=self.__gps_thread, daemon=True)
         if threaded:
@@ -134,11 +137,15 @@ class GPS:
         """
         parsed_data : NMEAMessage
         while self.active:
-            raw_data, parsed_data = self.nmr.read() # Blocking
+            raw_data, parsed_data = self.nmr.read()
+
+            with self.pause_lock:
+                if self.pause_updates:
+                    continue
+
             with self.lock:
                 self.__update_data(parsed_data)
-            if self.callback and self.data.is_valid():
-                self.callback(self.data)
+
 
     def __get_single_data(self) -> GPSData:
         """
@@ -182,39 +189,35 @@ class GPS:
             offset = float(f.read())
         return offset
 
-    def calibrate_heading_offset(self, calib_time : int = 5):
-        """
-        Averages out the heading data and subtracts it from the most recent heading to generate GPS heading offset.
-        Puts the calcuated offset in the specified place (API/GPS/Config/gps_offset.txt).
+    def calibrate_heading_offset(self, calib_time: int = 5):
+        self.pause_updates = True
+        time.sleep(0.2)  # let GPS thread settle
 
-        Args:
-            calib_time (int): Time to receive data from GPS before calculating offset. Defaults to 5 seconds.
-        """
         heading_data = []
-        input("Press Enter to start calibration")
-        print("Calibrating GPS heading offset...")
         start_time = time.time()
+
         while time.time() - start_time < calib_time:
             data = self.get_data()
             if data.is_valid():
                 heading_data.append(data.heading)
-            time.sleep(0.3)
+            time.sleep(0.2)
+
+        if not heading_data:
+            print("No heading data collected")
+            self.pause_updates = False
+            return
+
         avg_heading = sum(heading_data) / len(heading_data)
-        print(f"Average heading: {avg_heading}")
-        current_heading = input("Enter current heading: ")
-        offset = float(current_heading) - avg_heading
-        print(f"Offset: {offset}")
-        data = input("Save offset? (y/n): ")
-        if data.lower() == "y":
-            curr_path = Path("API/GPS")
-            config_path = curr_path / "Config"
-            if not config_path.exists():
-                os.mkdir(config_path)
-            with open(config_path / "gps_offset.txt", "w") as f:
-                f.write(str(offset))
-                print("Offset saved.")
-        print("Calibration complete.")
-        
+        offset = -avg_heading  # force current heading to 0
+
+        with self.lock:
+            self.offset = offset
+            self.data.heading = 0.0  # IMMEDIATE visible effect
+
+        self.pause_updates = False
+        print(f"GPS calibrated. Offset = {offset}")
+
+            
     def save_waypoints(self):
         """
         Method to save current waypoints in a log (.txt) file. Will open a file in the Test_Scripts/GPS_Tests directory.
