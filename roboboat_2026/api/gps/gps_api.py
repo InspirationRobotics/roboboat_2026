@@ -193,7 +193,6 @@ class GPS:
         time.sleep(2)  # let GPS thread settle
 
         heading_data = []
-        # input("Press Enter to start calibration")
         print("Calibrating GPS heading offset...")
         start_time = time.time()
 
@@ -209,11 +208,20 @@ class GPS:
             return
 
         avg_heading = sum(heading_data) / len(heading_data)
-        print(f"Average heading: {avg_heading}")
-        current_heading = 0#input("Enter current heading: ")
-        offset = float(current_heading) - avg_heading
-        print(f"Offset: {offset}")
-        data = 'y' # input("Save offset? (y/n): ")
+        print(f"Average GPS heading: {avg_heading}")
+        
+        # FIX: Actually get the true heading from user input
+        current_heading = float(input("Enter the TRUE current heading (0-360°): "))
+        
+        # Calculate offset: true_heading - measured_heading
+        offset = (current_heading - avg_heading) % 360
+        
+        # Handle wraparound: keep offset in range [-180, 180] for better behavior
+        if offset > 180:
+            offset -= 360
+        
+        print(f"Calculated offset: {offset}")
+        data = input("Save offset? (y/n): ")
         if data.lower() == "y":
             curr_path = Path("/root/rb_ws/src/roboboat_2026/roboboat_2026/api/gps")
             config_path = curr_path / "config"
@@ -225,6 +233,7 @@ class GPS:
 
         with self.lock:
             self.offset = offset
+        self.pause_updates = False  # FIX: Don't forget to resume updates!
         print("Calibration complete.")
         
     def save_waypoints(self):
