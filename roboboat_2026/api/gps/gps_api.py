@@ -201,6 +201,7 @@ class GPS:
             # if data.is_valid():
             #     heading_data.append(data.heading)
             if self.raw_heading is not None:
+                print(self.raw_heading)
                 heading_data.append(self.raw_heading)
             time.sleep(0.2)
 
