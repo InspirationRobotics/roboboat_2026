@@ -50,6 +50,10 @@ class OdometryNode(Node):
         response.success = True
         response.message = "Origin cleared. Next GPS message will set a new (0,0)."
         return response
+    
+    def degrees_to_radians(self, degrees):
+        """Converts degrees to radians."""
+        return degrees * (math.pi / 180.0)
 
     def get_quaternion_from_euler(self, yaw):
         """Converts yaw (radians) to a ROS 2 quaternion."""
@@ -99,7 +103,7 @@ class OdometryNode(Node):
         odom_msg.pose.pose.position.z = self.Z_COORDINATE
 
         # Set Orientation
-        yaw = math.radians(heading)
+        yaw = self.degrees_to_radians(heading)
         q = self.get_quaternion_from_euler(yaw)
         odom_msg.pose.pose.orientation.x = q['x']
         odom_msg.pose.pose.orientation.y = q['y']

@@ -4,40 +4,39 @@ class PurePursuitPlanner:
         self.ld = lookahead_dist
         self.L = wheelbase
         self.path = []
-
-    def set_path(self, path):
-        self.path = path
+        self.last_index = 0  # Track progress to prevent "skipping"
 
     def get_target_setpoints(self, current_pose):
-        # Use internal self.path and self.ld
-        target_pt = self._find_lookahead_point((current_pose.x, current_pose.y), self.path, self.ld)
+        if not self.path:
+            return 0, 0
+
+        target_pt = self._find_lookahead_point((current_pose.x, current_pose.y))
         
         dx = target_pt[0] - current_pose.x
         dy = target_pt[1] - current_pose.y
-        target_heading = math.degrees(math.atan2(dy, dx))
-
-        target_velocity = 0.5 
-        return target_velocity, target_heading
-
-    def _find_lookahead_point(self, robot_pose, path, lookahead_dist):
-        # robot_pose is (x, y), path is [(x1, y1), (x2, y2), ...]
-        target_point = None
         
-        # Iterate through segments
-        for i in range(len(path) - 1):
-            p1 = path[i]
-            p2 = path[i+1]
-            
-            # Find intersection of circle (center=robot, radius=Ld) and line segment (p1 to p2)
-            intersect = self._get_segment_intersection(p1, p2, robot_pose, lookahead_dist)
+        # Heading in radians is usually better for PID math
+        target_heading = math.atan2(dy, dx)
+
+        # Basic slowdown logic: slower when heading error is high
+        # You'll need to normalize current_pose.heading to match atan2 range
+        heading_error = abs(target_heading - math.radians(current_pose.theta))
+        target_velocity = 0.5 * math.cos(min(heading_error, math.pi/2))
+        
+        return target_velocity, math.degrees(target_heading)
+
+    def _find_lookahead_point(self, robot_pose):
+        # Start searching from the last known segment
+        for i in range(self.last_index, len(self.path) - 1):
+            p1 = self.path[i]
+            p2 = self.path[i+1]
+            intersect = self._get_segment_intersection(p1, p2, robot_pose, self.ld)
             
             if intersect:
-                # If multiple segments intersect, we take the one further along the path
-                target_point = intersect
+                self.last_index = i # Update progress
+                return intersect
                 
-        # Fallback: If no intersection found, return the last point in the path 
-        # or the closest point to prevent the robot from stopping.
-        return target_point if target_point else path[-1]
+        return self.path[-1]
 
     def _get_segment_intersection(self, p1, p2, center, r):
         # Shift coordinates so the circle is at the origin (0,0)
