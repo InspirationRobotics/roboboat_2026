@@ -72,6 +72,30 @@ class StaticTransformPublisher(Node):
         self.broadcaster.sendTransform(t)
 
         
+    def pub_map(self):
+        t = TransformStamped()
+
+        # Time is ignored for tf_static, but must be filled
+        t.header.stamp = self.get_clock().now().to_msg()
+
+        # Parent → Child
+        t.header.frame_id = 'map'
+        t.child_frame_id = 'odom'
+
+        # Translation
+        t.transform.translation.x = 0.0
+        t.transform.translation.y = 0.0
+        t.transform.translation.z = 0.0
+
+        # Identity rotation
+        t.transform.rotation.x = 0.0
+        t.transform.rotation.y = 0.0
+        t.transform.rotation.z = 0.0
+        t.transform.rotation.w = 1.0
+
+        # Publish
+        self.broadcaster.sendTransform(t)
+    
     def publish_tf(self):
         self.pub_oakd()
         self.pub_livox()
