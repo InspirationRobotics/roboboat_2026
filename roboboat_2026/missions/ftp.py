@@ -7,7 +7,7 @@ import json
 class JsonWaypointClient(Node):
     def __init__(self):
         super().__init__('json_waypoint_client')
-        self.pub = self.create_publisher(Float32MultiArray, 'add_waypoint', 10)
+        self.pub = self.create_publisher(Float32MultiArray, '/add_waypoint', 10)
         self.get_logger().info("Client ready")
 
     def load_waypoints(self, path):

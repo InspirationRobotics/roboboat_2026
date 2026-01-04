@@ -27,7 +27,7 @@ class WaypointService(Node):
         # Service-like subscriber
         self.srv_sub = self.create_subscription(
             Float32MultiArray,
-            'add_waypoint',
+            '/add_waypoint',
             self.add_waypoint_callback,
             10
         )
