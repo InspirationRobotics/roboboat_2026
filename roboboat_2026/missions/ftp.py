@@ -131,7 +131,7 @@ class BoatNavigationClient(Node):
         current_y = feedback.current_pose.pose.position.y
         
         self.get_logger().info(
-            f'📏 Distance: {distance:.2f}m | '
+            f'Distance: {distance:.2f}m | '
             f'Position: ({current_x:.2f}, {current_y:.2f})'
         )
 
