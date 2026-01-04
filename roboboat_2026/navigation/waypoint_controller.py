@@ -70,7 +70,7 @@ class WaypointNav(Node):
     def gps_callback(self, msg):
         self.heading = msg.data[2]
 
-    async def execute_callback(self, goal_handle):
+    def execute_callback(self, goal_handle):
         goal_pose = goal_handle.request.pose.pose.position
         x_goal = goal_pose.x
         y_goal = goal_pose.y
