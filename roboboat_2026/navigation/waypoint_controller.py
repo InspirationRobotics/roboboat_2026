@@ -118,7 +118,9 @@ class WaypointNav(Node):
         tolerance = 0.8
         if distance < tolerance:
             self.get_logger().info('Goal reached')
-            self.goal_handle.succeed()
+            if self.goal_handle.is_active:
+                self.goal_handle.succeed()
+
             self.active_goal = None
             self.goal_handle = None
             return
