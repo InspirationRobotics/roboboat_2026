@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import math
 import time
 import rclpy
@@ -9,19 +8,7 @@ from std_msgs.msg import Empty
 
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32MultiArray
-from nav2_msgs.action import NavigateToPose
 from roboboat_2026.util.helper import heading_error, get_heading_from_coords
-
-def quaternion_to_yaw(q):
-    """
-    q: geometry_msgs.msg.Quaternion
-    returns yaw in degrees
-    """
-    return math.degrees(math.atan2(
-        2.0 * (q.w * q.z + q.x * q.y),
-        1.0 - 2.0 * (q.y * q.y + q.z * q.z)
-    ))
-
 def simpleControl(distance, heading_error):
     max_surge = 0.6
     max_yaw = 0.8
@@ -32,14 +19,19 @@ def simpleControl(distance, heading_error):
     res[1] = min((heading_error/180) * max_yaw,0.3) if heading_error > 10 else 0.0
 
     return res[0], res[1]
-
-
-class WaypointNav(Node):
-
+class WaypointService(Node):
     def __init__(self):
-        super().__init__('waypoint_nav_node')
+        super().__init__('waypoint_service')
+        self.queue = []
 
-        # State
+        # Service-like subscriber
+        self.srv_sub = self.create_subscription(
+            Float32MultiArray,
+            'add_waypoint',
+            self.add_waypoint_callback,
+            10
+        )
+         # State
         self.position = None
         self.heading = None
 
@@ -65,19 +57,11 @@ class WaypointNav(Node):
             10
         )
 
-        # Action Server
-        self.action_server = ActionServer(
-            self,
-            NavigateToPose,
-            'navigate_to_pose',
-            self.execute_callback
-        )
-        # control loop
+        # Control loop
+        self.timer = self.create_timer(0.05, self.control_loop)
         self.active_goal = None
-        self.goal_handle = None
 
-        self.timer = self.create_timer(0.02, self.control_loop)
-        self.get_logger().info('NavigateToPose action server started')
+        self.get_logger().info("Waypoint server ready")
 
     def pose_callback(self, msg):
         self.position = [
@@ -92,64 +76,49 @@ class WaypointNav(Node):
     def gps_callback(self, msg):
         self.heading = msg.data[2]
 
-    def control_loop(self):
-
-        if self.active_goal is None:
+    def add_waypoint_callback(self, msg: Float32MultiArray):
+        if len(msg.data) != 2:
+            self.get_logger().error("Waypoint must be [x, y]")
             return
+        self.queue.append(msg.data)
+        self.get_logger().info(f"Waypoint added to queue: {msg.data}")
 
+    def control_loop(self):
         if self.position is None or self.heading is None:
             return
 
-        dx = self.active_goal.x - self.position[0]
-        dy = self.active_goal.y - self.position[1]
+        if self.active_goal is None and self.queue:
+            self.active_goal = self.queue.pop(0)
+            self.get_logger().info(f"Starting waypoint: {self.active_goal}")
+
+        if self.active_goal is None:
+            return
+        x, y = self.active_goal
+        dx = x - self.position[0]
+        dy = y - self.position[1]
         distance = math.hypot(dx, dy)
 
-        self.get_logger().info(
-            f"{distance:.2f} m | heading: {self.heading:.1f}"
-        )
+        self.get_logger().info(f"{distance:.2f} m to goal | heading: {self.heading:.1f}")
 
         desire_heading = get_heading_from_coords(dx, dy)
         error_heading = heading_error(self.heading, desire_heading)
 
-        feedback = NavigateToPose.Feedback()
-        feedback.distance_remaining = float(distance)
-        self.goal_handle.publish_feedback(feedback)
-
-        tolerance = 0.8
-        if distance < tolerance:
-            self.get_logger().info('Goal reached')
-            if self.goal_handle.is_active:
-                self.goal_handle.succeed()
-
-            self.active_goal = None
-            self.goal_handle = None
+        # Goal reached
+        if distance < 0.8:
+            self.get_logger().info(f"Reached waypoint x={target.x}, y={target.y}")
+            self.waypoints.pop(0)
             return
 
         surge, yaw = simpleControl(distance, error_heading)
-
         pwm = Float32MultiArray()
         pwm.data = [float(surge), 0.0, float(yaw)]
         self.pwm_pub.publish(pwm)
 
-    def execute_callback(self, goal_handle):
-        self.goal_handle = goal_handle
-        self.active_goal = goal_handle.request.pose.pose.position
-
-        self.get_logger().info(
-            f'NavigateToPose goal received: x={self.active_goal.x}, y={self.active_goal.y}'
-        )
-
-        return NavigateToPose.Result()  # result returned later
-
-
-
-
 def main():
     rclpy.init()
-    node = WaypointNav()
+    node = WaypointService()
     rclpy.spin(node)
     rclpy.shutdown()
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
