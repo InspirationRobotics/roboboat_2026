@@ -99,7 +99,6 @@ class WaypointService(Node):
         dy = y - self.position[1]
         distance = math.hypot(dx, dy)
 
-        self.get_logger().info(f"{distance:.2f} m to goal | heading: {self.heading:.1f}")
 
         desire_heading = get_heading_from_coords(dx, dy)
         error_heading = heading_error(self.heading, desire_heading)
@@ -109,6 +108,7 @@ class WaypointService(Node):
             self.get_logger().info(f"Reached waypoint x={x}, y={y}")
             return
 
+        self.get_logger().info(f"{distance:.2f} m to goal | heading error: {error_heading:.1f}")
         surge, yaw = simpleControl(distance, error_heading)
         pwm = Float32MultiArray()
         pwm.data = [float(surge), 0.0, float(yaw)]
