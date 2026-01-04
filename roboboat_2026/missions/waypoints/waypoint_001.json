@@ -5,26 +5,3 @@
     { "id": 2, "name": "Gate",  "x": -3.2, "y": -4.2 }
   ]
 }
-
-{
-  "mission_name": "Lake Navigation Test",
-  "frame_id": "map",
-  "waypoints": [
-    {
-      "id": 1,
-      "name": "Start Buoy",
-      "x": 3.2,
-      "y": -2.0,
-      "tolerance": 0.8,
-      "description": "First navigation marker"
-    },
-    {
-      "id": 1,
-      "name": "Start Buoy",
-      "x": -3.2,
-      "y": -4.2,
-      "tolerance": 0.8,
-      "description": "First navigation marker"
-    }
-  ]
-}
