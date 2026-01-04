@@ -5,26 +5,18 @@
     {
       "id": 1,
       "name": "Start Buoy",
-      "x": 10.0,
-      "y": 5.0,
+      "x": 2,
+      "y": -3.0,
       "tolerance": 0.8,
       "description": "First navigation marker"
     },
     {
       "id": 2,
       "name": "Mid Channel",
-      "x": 20.0,
-      "y": 15.0,
+      "x": -5,
+      "y": -3,
       "tolerance": 1.0,
       "description": "Middle of the channel"
-    },
-    {
-      "id": 3,
-      "name": "Far Buoy",
-      "x": 30.0,
-      "y": 10.0,
-      "tolerance": 0.8,
-      "description": "Far navigation marker"
     },
     {
       "id": 4,
