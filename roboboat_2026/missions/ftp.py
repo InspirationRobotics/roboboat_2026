@@ -214,8 +214,7 @@ def main(args=None):
     client = BoatNavigationClient()
     
     # Get the package share directory
-    package_name = 'roboboat_2026'  # Change to your package name
-    package_share_dir = get_package_share_directory(package_name)
+    package_share_dir = "/root/rb_ws/src/roboboat_2026/roboboat_2026"
     waypoint_file = os.path.join(
             package_share_dir,
             'missions',
