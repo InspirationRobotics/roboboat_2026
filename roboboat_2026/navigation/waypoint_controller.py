@@ -91,6 +91,7 @@ class WaypointNav(Node):
         tolerance = 0.8  # meters
 
         while rclpy.ok():
+            rclpy.spin_once(self, timeout_sec=0.0)
             if self.position is None:
                 time.sleep(1)
                 continue
