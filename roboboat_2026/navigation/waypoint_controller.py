@@ -6,7 +6,6 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
 from std_msgs.msg import Empty
-import asyncio
 
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32MultiArray
@@ -73,7 +72,8 @@ class WaypointNav(Node):
             'navigate_to_pose',
             self.execute_callback
         )
-
+        # control loop
+        self.timer = self.create_timer(0.02, self.control_loop)
         self.get_logger().info('NavigateToPose action server started')
 
     def pose_callback(self, msg):
@@ -89,59 +89,53 @@ class WaypointNav(Node):
     def gps_callback(self, msg):
         self.heading = msg.data[2]
 
-    async def execute_callback(self, goal_handle):
-        goal_pose = goal_handle.request.pose.pose.position
-        x_goal = goal_pose.x
-        y_goal = goal_pose.y
+    def control_loop(self):
+
+        if self.active_goal is None:
+            return
+
+        if self.position is None or self.heading is None:
+            return
+
+        dx = self.active_goal.x - self.position[0]
+        dy = self.active_goal.y - self.position[1]
+        distance = math.hypot(dx, dy)
 
         self.get_logger().info(
-            f'NavigateToPose goal received: x={x_goal}, y={y_goal}'
+            f"{distance:.2f} m | heading: {self.heading:.1f}"
         )
 
+        desire_heading = get_heading_from_coords(dx, dy)
+        error_heading = heading_error(self.heading, desire_heading)
+
         feedback = NavigateToPose.Feedback()
-        result = NavigateToPose.Result()
+        feedback.distance_remaining = float(distance)
+        self.goal_handle.publish_feedback(feedback)
 
-        tolerance = 0.8  # meters
+        tolerance = 0.8
+        if distance < tolerance:
+            self.get_logger().info('Goal reached')
+            self.goal_handle.succeed()
+            self.active_goal = None
+            self.goal_handle = None
+            return
 
-        while rclpy.ok():
+        surge, yaw = simpleControl(distance, error_heading)
 
-            # wait for state
-            if self.position is None or self.heading is None:
-                await asyncio.sleep(0.05)
-                continue
+        pwm = Float32MultiArray()
+        pwm.data = [float(surge), 0.0, float(yaw)]
+        self.pwm_pub.publish(pwm)
 
-            dx = x_goal - self.position[0]
-            dy = y_goal - self.position[1]
-            distance = math.hypot(dx, dy)
+    def execute_callback(self, goal_handle):
+        self.goal_handle = goal_handle
+        self.active_goal = goal_handle.request.pose.pose.position
 
-            self.get_logger().info(
-                f"{distance:.2f} m | heading: {self.heading:.1f}"
-            )
+        self.get_logger().info(
+            f'NavigateToPose goal received: x={self.active_goal.x}, y={self.active_goal.y}'
+        )
 
-            desire_heading = get_heading_from_coords(dx, dy)
-            error_heading = heading_error(self.heading, desire_heading)
+        return NavigateToPose.Result()  # result returned later
 
-            feedback.distance_remaining = float(distance)
-            goal_handle.publish_feedback(feedback)
-
-            if distance < tolerance:
-                self.get_logger().info('Goal reached')
-                result.result = Empty()
-                goal_handle.succeed()
-                return result
-
-            surge, yaw = simpleControl(distance, error_heading)
-
-            pwm = Float32MultiArray()
-            pwm.data = [float(surge), 0.0, float(yaw)]
-            self.pwm_pub.publish(pwm)
-
-            # 5 Hz control loop
-            await asyncio.sleep(0.2)
-
-        result.result = Empty()
-        goal_handle.abort()
-        return result
 
 
 
