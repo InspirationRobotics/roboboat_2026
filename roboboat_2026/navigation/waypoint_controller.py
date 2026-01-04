@@ -70,7 +70,7 @@ class WaypointNav(Node):
             msg.pose.position.y
         ]
 
-        self.get_logger().info(f"current pose: {self.position}")
+        # self.get_logger().info(f"current pose: {self.position}")
  
 
     def gps_callback(self, msg):
@@ -97,7 +97,6 @@ class WaypointNav(Node):
                 continue
 
             # find distance and heading error
-            self.get_logger().info(f"current_position: {self.position}")
             dx = x_goal - self.position[0]
             dy = y_goal - self.position[1]
             distance = math.hypot(dx, dy)
