@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import math
+import time
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
@@ -83,11 +84,10 @@ class WaypointNav(Node):
         result = NavigateToPose.Result()
 
         tolerance = 0.8  # meters
-        rate = self.create_rate(10)
 
         while rclpy.ok():
             if self.position is None:
-                rate.sleep()
+                time.sleep(1)
                 continue
 
             # find distance and heading error
@@ -120,7 +120,7 @@ class WaypointNav(Node):
             pwm.data = [surge,0.0,yaw]
             self.pwm_pub.publish(pwm)
 
-            rate.sleep()
+            time.sleep(0.1)
 
         result.result = 1  # FAILURE
         goal_handle.abort()
