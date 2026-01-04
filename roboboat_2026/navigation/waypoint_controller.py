@@ -16,12 +16,12 @@ from tf_transformations import euler_from_quaternion
 def quaternion_to_yaw(q):
     """
     q: geometry_msgs.msg.Quaternion
-    returns yaw in radians
+    returns yaw in degrees
     """
-    _, _, yaw = euler_from_quaternion(
-        [q.x, q.y, q.z, q.w]
-    )
-    return yaw
+    return math.degrees(math.atan2(
+        2.0 * (q.w * q.z + q.x * q.y),
+        1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+    ))
 
 def simpleControl(distance, heading_error):
     max_surge = 0.3
