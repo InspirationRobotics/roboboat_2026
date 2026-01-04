@@ -6,6 +6,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
 from std_msgs.msg import Empty
+import asyncio
 
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32MultiArray
@@ -88,7 +89,7 @@ class WaypointNav(Node):
     def gps_callback(self, msg):
         self.heading = msg.data[2]
 
-    def execute_callback(self, goal_handle):
+    async def execute_callback(self, goal_handle):
         goal_pose = goal_handle.request.pose.pose.position
         x_goal = goal_pose.x
         y_goal = goal_pose.y
@@ -103,29 +104,25 @@ class WaypointNav(Node):
         tolerance = 0.8  # meters
 
         while rclpy.ok():
-            rclpy.spin_once(self, timeout_sec=0.0)
-            if self.position is None:
-                time.sleep(1)
+
+            # wait for state
+            if self.position is None or self.heading is None:
+                await asyncio.sleep(0.05)
                 continue
 
-            # find distance and heading error
             dx = x_goal - self.position[0]
             dy = y_goal - self.position[1]
             distance = math.hypot(dx, dy)
-            self.get_logger().info(f"{distance} away from goal | heading: {self.heading}")
-            desire_heading = get_heading_from_coords(dx,dy)
-            
+
+            self.get_logger().info(
+                f"{distance:.2f} m | heading: {self.heading:.1f}"
+            )
+
+            desire_heading = get_heading_from_coords(dx, dy)
             error_heading = heading_error(self.heading, desire_heading)
 
-
-            # Feedback
             feedback.distance_remaining = float(distance)
             goal_handle.publish_feedback(feedback)
-
-            # Optional: publish current pose feedback
-            feedback.current_pose = PoseStamped()
-            feedback.current_pose.pose.position.x = self.position[0]
-            feedback.current_pose.pose.position.y = self.position[1]
 
             if distance < tolerance:
                 self.get_logger().info('Goal reached')
@@ -133,17 +130,19 @@ class WaypointNav(Node):
                 goal_handle.succeed()
                 return result
 
-            # Example PWM output
+            surge, yaw = simpleControl(distance, error_heading)
+
             pwm = Float32MultiArray()
-            surge, yaw = simpleControl(distance,error_heading)
-            pwm.data = [surge,0.0,yaw]
+            pwm.data = [float(surge), 0.0, float(yaw)]
             self.pwm_pub.publish(pwm)
 
-            time.sleep(0.2) # 5 hz
+            # 5 Hz control loop
+            await asyncio.sleep(0.2)
 
-        result.result = 1  # FAILURE
+        result.result = Empty()
         goal_handle.abort()
         return result
+
 
 
 def main():
