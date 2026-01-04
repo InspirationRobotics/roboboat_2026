@@ -51,12 +51,12 @@ class WaypointNav(Node):
             10
         )
 
-        self.create_subscription(
-            Float32MultiArray,
-            '/GPS',
-            self.gps_callback,
-            10
-        )
+        # self.create_subscription(
+        #     Float32MultiArray,
+        #     '/GPS',
+        #     self.gps_callback,
+        #     10
+        # )
 
         # Publisher to Teensy
         self.pwm_pub = self.create_publisher(
