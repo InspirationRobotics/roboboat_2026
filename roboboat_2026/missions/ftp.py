@@ -219,7 +219,7 @@ def main(args=None):
             package_share_dir,
             'missions',
             'waypoints',
-            'waypoint001.json'
+            'waypoint_001.json'
         )
     
     # Load waypoints
