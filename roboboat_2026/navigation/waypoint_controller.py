@@ -51,12 +51,12 @@ class WaypointNav(Node):
             10
         )
 
-        # self.create_subscription(
-        #     Float32MultiArray,
-        #     '/GPS',
-        #     self.gps_callback,
-        #     10
-        # )
+        self.create_subscription(
+            Float32MultiArray,
+            '/GPS',
+            self.gps_callback,
+            10
+        )
 
         # Publisher to Teensy
         self.pwm_pub = self.create_publisher(
@@ -81,7 +81,7 @@ class WaypointNav(Node):
             msg.pose.position.y
         ]
 
-        self.heading = quaternion_to_yaw(msg.pose.orientation)
+        # self.heading = quaternion_to_yaw(msg.pose.orientation)
         # self.get_logger().info(f"current pose: {self.position}")
  
 
