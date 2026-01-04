@@ -106,7 +106,7 @@ class WaypointService(Node):
 
         # Goal reached
         if distance < 0.8:
-            self.get_logger().info(f"Reached waypoint x={target.x}, y={target.y}")
+            self.get_logger().info(f"Reached waypoint x={x}, y={y}")
             self.waypoints.pop(0)
             return
 
