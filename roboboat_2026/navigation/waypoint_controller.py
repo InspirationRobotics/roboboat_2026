@@ -73,6 +73,9 @@ class WaypointNav(Node):
             self.execute_callback
         )
         # control loop
+        self.active_goal = None
+        self.goal_handle = None
+
         self.timer = self.create_timer(0.02, self.control_loop)
         self.get_logger().info('NavigateToPose action server started')
 
