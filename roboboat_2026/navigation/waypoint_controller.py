@@ -112,7 +112,7 @@ class WaypointNav(Node):
             dx = x_goal - self.position[0]
             dy = y_goal - self.position[1]
             distance = math.hypot(dx, dy)
-            self.get_logger().info(f"{distance} away from goal | heading: self.heading")
+            self.get_logger().info(f"{distance} away from goal | heading: {self.heading}")
             desire_heading = get_heading_from_coords(dx,dy)
             
             error_heading = heading_error(self.heading, desire_heading)
