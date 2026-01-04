@@ -11,7 +11,6 @@ from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32MultiArray
 from nav2_msgs.action import NavigateToPose
 from roboboat_2026.util.helper import heading_error, get_heading_from_coords
-from tf_transformations import euler_from_quaternion
 
 def quaternion_to_yaw(q):
     """
