@@ -106,6 +106,13 @@ class WaypointService(Node):
         # Goal reached
         if distance < 0.8:
             self.get_logger().info(f"Reached waypoint x={x}, y={y}")
+            if self.queue:
+                self.active_goal = self.queue.pop(0)
+            else:
+                self.active_goal = None
+                pwm = Float32MultiArray()
+                pwm.data = [0.0, 0.0, 0.0]
+                self.pwm_pub.publish(pwm)
             return
 
         self.get_logger().info(f"{distance:.2f} m to goal | heading error: {error_heading:.1f}")
