@@ -1,4 +1,12 @@
 {
+  "frame_id": "map",
+  "waypoints": [
+    { "id": 1, "name": "Start", "x": 3.2, "y": -2.0 },
+    { "id": 2, "name": "Gate",  "x": -3.2, "y": -4.2 }
+  ]
+}
+
+{
   "mission_name": "Lake Navigation Test",
   "frame_id": "map",
   "waypoints": [
