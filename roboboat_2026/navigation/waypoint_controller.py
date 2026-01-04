@@ -77,6 +77,7 @@ class WaypointService(Node):
         self.heading = msg.data[2]
 
     def add_waypoint_callback(self, msg: Float32MultiArray):
+        self.get_logger().info("received waypoints")
         if len(msg.data) != 2:
             self.get_logger().error("Waypoint must be [x, y]")
             return
