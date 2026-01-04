@@ -11,10 +11,21 @@ from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32MultiArray
 from nav2_msgs.action import NavigateToPose
 from roboboat_2026.util.helper import heading_error, get_heading_from_coords
+from tf_transformations import euler_from_quaternion
+
+def quaternion_to_yaw(q):
+    """
+    q: geometry_msgs.msg.Quaternion
+    returns yaw in radians
+    """
+    _, _, yaw = euler_from_quaternion(
+        [q.x, q.y, q.z, q.w]
+    )
+    return yaw
 
 def simpleControl(distance, heading_error):
     max_surge = 0.3
-    max_yaw = 0.8
+    max_yaw = 0.6
     res = [max_surge,0.0]
     if distance < 5:
         res[0] = float(distance/4) * max_surge
@@ -71,6 +82,7 @@ class WaypointNav(Node):
             msg.pose.position.y
         ]
 
+        self.heading = quaternion_to_yaw(msg.pose.orientation)
         # self.get_logger().info(f"current pose: {self.position}")
  
 
@@ -127,7 +139,7 @@ class WaypointNav(Node):
             pwm.data = [surge,0.0,yaw]
             self.pwm_pub.publish(pwm)
 
-            time.sleep(0.1)
+            time.sleep(0.2) # 5 hz
 
         result.result = 1  # FAILURE
         goal_handle.abort()
