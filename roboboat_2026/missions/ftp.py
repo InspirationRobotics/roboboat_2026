@@ -116,7 +116,7 @@ def main():
         )
 
         node.result_future = None
-        node.send_goal_and_wait(wp['x'], wp['y'], frame_id)
+        node.send_goal_and_wait(wp, frame_id)
 
         status = node.wait_for_result()
 
