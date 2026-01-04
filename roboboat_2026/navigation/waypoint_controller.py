@@ -24,12 +24,12 @@ def quaternion_to_yaw(q):
 
 def simpleControl(distance, heading_error):
     max_surge = 0.6
-    max_yaw = 0.4
+    max_yaw = 0.8
     res = [max_surge,0.0]
     if distance < 5:
         res[0] = float(distance/4) * max_surge
     
-    res[1] = (heading_error/180) * max_yaw
+    res[1] = min((heading_error/180) * max_yaw,0.3) if heading_error > 10 else 0.0
 
     return res[0], res[1]
 
