@@ -11,6 +11,8 @@ from geometry_msgs.msg import PoseStamped
 import json
 import os
 from pathlib import Path
+from ament_index_python.packages import get_package_share_directory
+
 
 
 class BoatNavigationClient(Node):
@@ -154,7 +156,7 @@ class BoatNavigationClient(Node):
             return False
         
         self.get_logger().info(
-            f'🚢 Starting mission: {self.mission_name}'
+            f'Starting mission: {self.mission_name}'
         )
         self.get_logger().info(
             f'Total waypoints: {len(self.waypoints)}'
@@ -211,8 +213,15 @@ def main(args=None):
     
     client = BoatNavigationClient()
     
-    # Get waypoint file path from command line or use default
-    waypoint_file = 'missions/waypoints/waypoint001.json'
+    # Get the package share directory
+    package_name = 'roboboat_2026'  # Change to your package name
+    package_share_dir = get_package_share_directory(package_name)
+    waypoint_file = os.path.join(
+            package_share_dir,
+            'missions',
+            'waypoints',
+            'waypoint001.json'
+        )
     
     # Load waypoints
     if not client.load_waypoints_from_json(waypoint_file):
