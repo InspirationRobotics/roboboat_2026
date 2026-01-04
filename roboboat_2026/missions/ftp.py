@@ -28,23 +28,51 @@ class JsonNavClient(Node):
             data = json.load(f)
         return data['waypoints'], data.get('frame_id', 'map')
 
-    def send_goal(self, x, y, frame_id):
-        goal = NavigateToPose.Goal()
-        goal.pose = PoseStamped()
-        goal.pose.header.frame_id = frame_id
-        goal.pose.header.stamp = self.get_clock().now().to_msg()
+    def send_goal_and_wait(self, wp, frame_id):
+        # Reset result_future
+        self.result_future = None
 
-        goal.pose.pose.position.x = float(x)
-        goal.pose.pose.position.y = float(y)
-        goal.pose.pose.orientation.w = 1.0
-
-        self.get_logger().info(f'Sending goal: ({x}, {y})')
-
-        send_future = self.client.send_goal_async(
-            goal,
+        # Send goal
+        send_goal_future = self.client.send_goal_async(
+            NavigateToPose.Goal(
+                pose=PoseStamped(
+                    header=PoseStamped().header,
+                    pose=PoseStamped().pose
+                )
+            ),
             feedback_callback=self.feedback_callback
         )
-        send_future.add_done_callback(self.goal_response_callback)
+
+        # Set goal coordinates
+        send_goal_future.add_done_callback(
+            lambda f: self._goal_response(f, wp['x'], wp['y'], frame_id)
+        )
+
+        # Wait until result_future exists and is done
+        while rclpy.ok():
+            rclpy.spin_once(self, timeout_sec=0.1)
+            if self.result_future is not None and self.result_future.done():
+                result_status = self.result_future.result().status
+                return result_status
+
+    def _goal_response(self, future, x, y, frame_id):
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.get_logger().error('Goal rejected')
+            self.result_future = None
+            return
+
+        self.get_logger().info('Goal accepted')
+
+        # Set coordinates properly
+        goal_handle.goal.pose.pose.position.x = x
+        goal_handle.goal.pose.pose.position.y = y
+        goal_handle.goal.pose.header.frame_id = frame_id
+        goal_handle.goal.pose.header.stamp = self.get_clock().now().to_msg()
+        goal_handle.goal.pose.pose.orientation.w = 1.0
+
+        self.result_future = goal_handle.get_result_async()
+
 
     def goal_response_callback(self, future):
         goal_handle = future.result()
