@@ -1,0 +1,38 @@
+{
+  "mission_name": "Lake Navigation Test",
+  "frame_id": "map",
+  "waypoints": [
+    {
+      "id": 1,
+      "name": "Start Buoy",
+      "x": 10.0,
+      "y": 5.0,
+      "tolerance": 0.8,
+      "description": "First navigation marker"
+    },
+    {
+      "id": 2,
+      "name": "Mid Channel",
+      "x": 20.0,
+      "y": 15.0,
+      "tolerance": 1.0,
+      "description": "Middle of the channel"
+    },
+    {
+      "id": 3,
+      "name": "Far Buoy",
+      "x": 30.0,
+      "y": 10.0,
+      "tolerance": 0.8,
+      "description": "Far navigation marker"
+    },
+    {
+      "id": 4,
+      "name": "Home Base",
+      "x": 0.0,
+      "y": 0.0,
+      "tolerance": 1.5,
+      "description": "Return to starting position"
+    }
+  ]
+}
