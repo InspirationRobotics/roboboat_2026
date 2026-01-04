@@ -14,9 +14,9 @@ def simpleControl(distance, heading_error):
     max_yaw = 0.8
     res = [max_surge,0.0]
     if distance < 5:
-        res[0] = float(distance/4) * max_surge
+        res[0] = max(float(distance/4) * max_surge,0.2)
     
-    res[1] = min((heading_error/180) * max_yaw,0.3) if abs(heading_error) > 10 else 0.0
+    res[1] = max((heading_error/180) * max_yaw,0.3) if abs(heading_error) > 10 else 0.0
 
     return res[0], res[1]
 class WaypointService(Node):
