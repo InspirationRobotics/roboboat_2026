@@ -12,11 +12,13 @@ from nav2_msgs.action import NavigateToPose
 from roboboat_2026.util.helper import heading_error, get_heading_from_coords
 
 def simpleControl(distance, heading_error):
-    res = [1.0,0.0]
+    max_surge = 0.5
+    max_yaw = 0.8
+    res = [max_surge,0.0]
     if distance < 4:
-        res[0] = float(distance/4)
+        res[0] = float(distance/4) * max_surge
     
-    res[1] = (heading_error/180) * 0.8
+    res[1] = (heading_error/180) * max_yaw
 
     return res[0], res[1]
 
@@ -67,6 +69,7 @@ class WaypointNav(Node):
             msg.pose.position.x,
             msg.pose.position.y
         ]
+        self.get_logger().info(f"get pose callback")
 
     def gps_callback(self, msg):
         self.heading = msg.data[2]
