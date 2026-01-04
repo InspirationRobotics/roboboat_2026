@@ -12,7 +12,7 @@ from nav2_msgs.action import NavigateToPose
 from roboboat_2026.util.helper import heading_error, get_heading_from_coords
 
 def simpleControl(distance, heading_error):
-    max_surge = 0.5
+    max_surge = 0.3
     max_yaw = 0.8
     res = [max_surge,0.0]
     if distance < 4:
