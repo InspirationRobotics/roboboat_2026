@@ -5,7 +5,7 @@
     {
       "id": 1,
       "name": "Start Buoy",
-      "x": 2,
+      "x": 2.0,
       "y": -3.0,
       "tolerance": 0.8,
       "description": "First navigation marker"
@@ -13,8 +13,8 @@
     {
       "id": 2,
       "name": "Mid Channel",
-      "x": -5,
-      "y": -3,
+      "x": -5.0,
+      "y": -3.0,
       "tolerance": 1.0,
       "description": "Middle of the channel"
     },
