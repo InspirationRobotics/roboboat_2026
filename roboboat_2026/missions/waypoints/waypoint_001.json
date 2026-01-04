@@ -5,8 +5,16 @@
     {
       "id": 1,
       "name": "Start Buoy",
-      "x": 2.0,
+      "x": 3.2,
       "y": -2.0,
+      "tolerance": 0.8,
+      "description": "First navigation marker"
+    },
+    {
+      "id": 1,
+      "name": "Start Buoy",
+      "x": -3.2,
+      "y": -4.2,
       "tolerance": 0.8,
       "description": "First navigation marker"
     }

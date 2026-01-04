@@ -5,6 +5,7 @@ import time
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
+from std_msgs.msg import Empty
 
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32MultiArray
@@ -15,7 +16,7 @@ def simpleControl(distance, heading_error):
     max_surge = 0.3
     max_yaw = 0.8
     res = [max_surge,0.0]
-    if distance < 4:
+    if distance < 5:
         res[0] = float(distance/4) * max_surge
     
     res[1] = (heading_error/180) * max_yaw
@@ -116,7 +117,7 @@ class WaypointNav(Node):
 
             if distance < tolerance:
                 self.get_logger().info('Goal reached')
-                result.result = 0  # SUCCESS
+                result.result = Empty()
                 goal_handle.succeed()
                 return result
 
