@@ -11,7 +11,7 @@ from nav2_msgs.action import NavigateToPose
 from roboboat_2026.util.helper import heading_error, get_heading_from_coords
 
 def simpleControl(distance, heading_error):
-    res = [1,0]
+    res = [1.0,0.0]
     if distance < 4:
         res[0] = float(distance/4)
     
@@ -116,7 +116,7 @@ class WaypointNav(Node):
             # Example PWM output
             pwm = Float32MultiArray()
             surge, yaw = simpleControl(distance,error_heading)
-            pwm.data = [surge,0,yaw]
+            pwm.data = [surge,0.0,yaw]
             self.pwm_pub.publish(pwm)
 
             rate.sleep()
