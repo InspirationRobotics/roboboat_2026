@@ -1,5 +1,5 @@
 from setuptools import find_packages, setup
-
+from glob import glob
 package_name = 'roboboat_2026'
 
 setup(
@@ -10,6 +10,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name+'/launch', glob('launch/*.launch.py')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -25,6 +26,7 @@ setup(
             'teensy_node = roboboat_2026.api.motors.teensy:main'
             'launcher_node = roboboat_2026.api.servos.ball_launcher:main',
             'lidar_costmap = roboboat_2026.mapping.lidar_costmap:main',
+            'odom_node = roboboat_2026.navigation.odom_node:main',
             'ekf_node = roboboat_2026.navigation.ekf:main',
         ],
     },

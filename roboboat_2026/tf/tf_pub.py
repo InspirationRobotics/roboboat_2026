@@ -20,7 +20,7 @@ class StaticTransformPublisher(Node):
         # Subscribe to odometry and publich base link to odometry tf
         self.odom_sub = self.create_subscription(
             Odometry,
-            '/fused/odometry',  
+            '/odom',  
             self.odom_callback,
             10
         )
