@@ -48,8 +48,11 @@ class TeensyNode(Node):
 
         # Thruster driver
         self.teensy = Teensy()
-        self.GPSThread = Thread(target=self.readloop, daemon=True)
+        # self.GPSThread = Thread(target=self.readloop, daemon=True) No GPS reading for Barco Polo
         self.lock = Lock()
+        self.cmd = [0.0,0.0,0.0]
+
+        self.loop = self.create_timer(0.05, self.write_loop)  # 20Hz
 
         # Subscribe to normalized surge/sway/yaw command
         self.subscription = self.create_subscription(
@@ -68,6 +71,16 @@ class TeensyNode(Node):
 
         # self.GPSThread.start() No GPS reading for Barco Polo
 
+    def write_loop(self):
+        
+        with self.lock:
+            surge,sway,yaw = self.cmd  
+            if self.activate_pump:
+                self.teensy.send_msg([surge,sway,yaw,1])
+                
+            else:
+                self.teensy.send_msg([surge,sway,yaw,0])
+                
     def listener_callback(self, msg):
         """
         Expect msg.data = [surge, sway, yaw], each in [-1, 1]
@@ -80,13 +93,10 @@ class TeensyNode(Node):
         sway  = round(float(msg.data[1]), 6)
         yaw   = round(float(msg.data[2]), 6)
 
-        self.logger.info(f"pwm: {[surge,sway,yaw]}")
+        self.logger.debug(f"pwm: {[surge,sway,yaw]}")
+        
         with self.lock:
-            if self.activate_pump:
-                self.teensy.send_msg([surge,sway,yaw,1])
-                
-            else:
-                self.teensy.send_msg([surge,sway,yaw,0])
+            self.cmd = [surge,sway,yaw]
 
     def pump_callback(self, request, response):
         # Do your reset logic here
@@ -142,7 +152,7 @@ class TeensyNode(Node):
     def destroy_node(self):
         self.get_logger().info("Stopping thrusters...")
         self.teensy.send_msg([0,0,0,0])
-        self.GPSThread.join(timeout=1)
+        # self.GPSThread.join(timeout=1) no GPS for barco Polo
         super().destroy_node()
 
 def main(args=None):
