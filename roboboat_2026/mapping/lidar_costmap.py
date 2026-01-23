@@ -43,7 +43,7 @@ class LidarCostmapNode(Node):
         # Publisher
         self.costmap_pub = self.create_publisher(
             OccupancyGrid,
-            '/local_costmap',
+            '/lidar_map',
             10
         )
 
