@@ -34,6 +34,7 @@ class BallLauncherNode(Node):
         self.launcher.send_command('g')
         time.sleep(0.5)
         self.launcher.send_command('a')
+        self.get_logger().info("Finished launching")
 
         response.success = True
         response.message = 'Pump triggered successfully'
@@ -45,6 +46,8 @@ class BallLauncherNode(Node):
 
         self.launcher.send_command('g')
         time.sleep(0.5)
+
+        self.get_logger().info("Spring Released")
         
         response.success = True
         response.message = 'Spring released successfully'

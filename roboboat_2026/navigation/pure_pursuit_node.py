@@ -194,6 +194,13 @@ class PurePursuitNode(Node):
             self.odom_callback,
             qos_profile
         )
+
+        self.odom_sub = self.create_subscription(
+            Float32MultiArray,
+            '/GPS',
+            self.gps_callback,
+            qos_profile
+        )
         
         self.path_sub = self.create_subscription(
             Path,
@@ -237,8 +244,12 @@ class PurePursuitNode(Node):
     def odom_callback(self, msg: Odometry):
         """Store current robot pose from odometry"""
         self.current_pose = msg.pose.pose.position
-        self.current_orientation = msg.pose.pose.orientation
+        
     
+    def gps_callback(self, msg):
+        """Get Heading directly from GPS and convert from GPS heading (N is 0, E is 90) to unit circle heading (N is 90, E is 0)"""
+        self.current_orientation = (90-msg.data[2])%360
+
     def path_callback(self, msg: Path):
         """Receive new path and update controller"""
         if len(msg.poses) == 0:
@@ -279,7 +290,7 @@ class PurePursuitNode(Node):
         # Get current state
         robot_x = self.current_pose.x
         robot_y = self.current_pose.y
-        robot_theta = self.get_yaw_from_quaternion(self.current_orientation)
+        robot_theta = self.current_orientation
         
         # Check if goal reached
         if self.controller.is_goal_reached(robot_x, robot_y, self.goal_tolerance):
