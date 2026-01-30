@@ -10,6 +10,7 @@ from std_srvs.srv import Trigger
 
 class RBClient(Node):
     def __init__(self):
+        super().__init__('RBClient')
         # General Information
         self.team_id = "ASTA"
         self.vehicle_ids = {"Barco_Polo":123,"Crusader":123}
@@ -20,13 +21,13 @@ class RBClient(Node):
         self.current_task = str() # current task
         
         # Create Subscribers and Service Servers
-        self.create_subscribers()
-        self.create_services()
+        # self.create_subscribers()
+        # self.create_services()
 
         # send loop 
         self.msg_queue = []
         self.report_queue = [] 
-        self.organizer = self.create_timer(1, self.organize_loop)  # 1Hz for heatbeat
+        self.organizer = self.create_timer(1.0, self.organize_loop)  # 1Hz for heatbeat
         self.reporter  = self.create_timer(0.2, self.report_loop)  # 5Hz for all msgs
         self.loop_counter = 0
 
