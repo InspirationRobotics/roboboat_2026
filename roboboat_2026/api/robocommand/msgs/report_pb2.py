@@ -15,7 +15,7 @@ _runtime_version.ValidateProtobufRuntimeVersion(
     32,
     1,
     '',
-    'report.proto'
+    'roboboat_2026/api/robocommand/proto/report.proto'
 )
 # @@protoc_insertion_point(imports)
 
