@@ -43,12 +43,19 @@ class RBClient(Node):
             s.sendall(frame)
 
     def organize_loop(self): # 1 Hz
-        self.report_queue = [HeartbeatMsg(state="UNKNOWN",lat= 32.00,lon= 31.00,speed=1.0,heading= 1.0,current_task="UNKNOWN")]
-        while len(self.report_queue) <= 5 and len(self.msg_queue)>0:
-                self.report_queue.append(self.msg_queue.pop(0))
+        try:
+            self.report_queue = [HeartbeatMsg(state="UNKNOWN",lat= 32.00,lon= 31.00,speed=1.0,heading= 1.0,current_task="UNKNOWN")]
+            while len(self.report_queue) <= 5 and len(self.msg_queue)>0:
+                    self.report_queue.append(self.msg_queue.pop(0))
+        except Exception as e:
+            self.get_logger().error(f"Error in organize loop. report queue is {self.report_queue}, msg queue is {self.msg_queue}")
+            self.get_logger().warn(f"e")
   
     def report_loop(self):
-         self.__send(self.report_queue.pop(0))
+        try:
+            self.__send(self.report_queue.pop(0))
+        except Exception as e:
+            self.get_logger().error(f"Error in report loop, report queue is {self.report_queue}")
     
     """All subscribers and services"""
     def create_subscribers(self):
