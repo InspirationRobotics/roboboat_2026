@@ -49,11 +49,12 @@ class RBClient(Node):
                     self.report_queue.append(self.msg_queue.pop(0))
         except Exception as e:
             self.get_logger().error(f"Error in organize loop. report queue is {self.report_queue}, msg queue is {self.msg_queue}")
-            self.get_logger().warn(f"e")
+            self.get_logger().warn(f"{e}")
   
     def report_loop(self):
         try:
-            self.__send(self.report_queue.pop(0))
+            if len(self.report_queue)>0:
+                self.__send(self.report_queue.pop(0))
         except Exception as e:
             self.get_logger().error(f"Error in report loop, report queue is {self.report_queue}")
     
