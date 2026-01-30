@@ -42,10 +42,10 @@ class RBClient(Node):
             s.sendall(frame)
 
     def organize_loop(self): # 1 Hz
-        self.report_queue = [HeartbeatMsg(____)]
-        while len(self.report_queue) <= 5 :
+        self.report_queue = [HeartbeatMsg(state="UNKNOWN",lat= 32.00,lon= 31.00,speed=1.0,heading= 1.0,current_task="UNKNOWN")]
+        while len(self.report_queue) <= 5 and len(self.msg_queue)>0:
                 self.report_queue.append(self.msg_queue.pop(0))
-    
+  
     def report_loop(self):
          self.__send(self.report_queue.pop(0))
     
