@@ -36,11 +36,11 @@ def HeartbeatMsg(state:str,lat:float,lon:float,speed:float,heading:float,current
         return None
     
     return Heartbeat(
-        state = report_states[states.index(state)]
-        position = Latlng(latitude=lat, longitude=lon)
-        spd_mps = float(speed)
-        heading_deg = float(heading)
-        current_task = report_tasks[tasks.index(current_task)]
+        state = report_states[states.index(state)],
+        position = Latlng(latitude=lat, longitude=lon),
+        spd_mps = float(speed),
+        heading_deg = float(heading),
+        current_task = report_tasks[tasks.index(current_task)],
     )
 
 def GatePassMsg(type, lat, lon):
