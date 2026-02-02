@@ -35,6 +35,13 @@ class WaypointService(Node):
         self.task_map = ['UNKNOWN','NONE','NAV_CHANNEL','SPEED_CHALLENGE','OBJECT_DELIVERY','DOCKING','SOUND_SIGNAL']
 
         # Subscribers
+        self.srv_sub = self.create_subscription(
+            Float32MultiArray,
+            '/add_waypoint',
+            self.add_waypoint_callback,
+            10
+        )
+        
         self.create_subscription(
             PoseStamped,
             '/fused/pose',
