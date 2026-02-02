@@ -7,11 +7,11 @@ from rclpy.action import ActionServer
 from std_msgs.msg import Empty
 
 from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray, String
 from roboboat_2026.util.helper import heading_error, get_heading_from_coords
 def simpleControl(distance, heading_error):
-    max_surge = 0.6
-    max_yaw = 0.8
+    max_surge = 0.8
+    max_yaw = 0.5
     res = [max_surge,0.0]
     if distance < 5:
         res[0] = max(float(distance/4) * max_surge,0.2)
@@ -22,21 +22,17 @@ def simpleControl(distance, heading_error):
         res[1] = - max(abs(heading_error/180) * max_yaw,0.3) if abs(heading_error) > 10 else 0.0
 
     return res[0], res[1]
+
 class WaypointService(Node):
     def __init__(self):
         super().__init__('waypoint_service')
         self.queue = []
-
-        # Service-like subscriber
-        self.srv_sub = self.create_subscription(
-            Float32MultiArray,
-            '/add_waypoint',
-            self.add_waypoint_callback,
-            10
-        )
          # State
         self.position = None
         self.heading = None
+        self.current_task = None
+
+        self.task_map = ['UNKNOWN','NONE','NAV_CHANNEL','SPEED_CHALLENGE','OBJECT_DELIVERY','DOCKING','SOUND_SIGNAL']
 
         # Subscribers
         self.create_subscription(
@@ -60,8 +56,14 @@ class WaypointService(Node):
             10
         )
 
+        self.task_pub = self.create_publisher(
+            String,
+            '/cur_task',
+            10
+        )
+
         # Control loop
-        self.timer = self.create_timer(0.05, self.control_loop)
+        self.timer = self.create_timer(0.05, self.control_loop) # 20 Hz
         self.active_goal = None
 
         self.get_logger().info("Waypoint server ready")
@@ -81,8 +83,8 @@ class WaypointService(Node):
 
     def add_waypoint_callback(self, msg: Float32MultiArray):
         self.get_logger().info("received waypoints")
-        if len(msg.data) != 2:
-            self.get_logger().error("Waypoint must be [x, y]")
+        if len(msg.data) != 3:
+            self.get_logger().error("Waypoint must be [x, y, task]")
             return
         self.queue.append(msg.data)
         self.get_logger().info(f"Waypoint added to queue: {msg.data}")
@@ -97,7 +99,14 @@ class WaypointService(Node):
 
         if self.active_goal is None:
             return
-        x, y = self.active_goal
+        
+            
+        x, y, task = self.active_goal
+        if self.current_task != task:
+            msg = String()
+            msg.data = self.task_map[int(task)]
+            self.current_task = int(task)
+            self.task_pub.publish(msg)
         dx = x - self.position[0]
         dy = y - self.position[1]
         distance = math.hypot(dx, dy)
@@ -107,7 +116,7 @@ class WaypointService(Node):
         error_heading = heading_error(self.heading, desire_heading)
 
         # Goal reached
-        if distance < 0.8:
+        if distance < 0.5:
             self.get_logger().info(f"Reached waypoint x={x}, y={y}")
             if self.queue:
                 self.active_goal = self.queue.pop(0)

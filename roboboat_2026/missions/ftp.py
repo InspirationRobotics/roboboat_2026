@@ -18,7 +18,7 @@ class JsonWaypointClient(Node):
     def send_waypoints(self, waypoints):
         for wp in waypoints:
             msg = Float32MultiArray()
-            msg.data = [float(wp['x']), float(wp['y'])]
+            msg.data = [float(wp['x']), float(wp['y']),int(wp['task'])]
             self.pub.publish(msg)
             self.get_logger().info(f"Sent waypoint: {msg.data}")
 
