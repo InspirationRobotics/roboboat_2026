@@ -27,13 +27,11 @@ class SimpleControl:
         else:
             res[1] = - max(abs(heading_error/180) * self.max_yaw,0.3) if abs(heading_error) > 10 else 0.0
 
-        step_up = abs(res[0] - self.last_surge)
+        step_up = res[0] - self.last_surge
         if step_up > 0.1:
             # force a small increase
-            if res[0] > self.last_surge:
-                res[0] = self.last_surge + 0.1
-            else:
-                res[0] = self.last_surge - 0.1
+            res[0] = self.last_surge + 0.1
+
 
         res[0] = min(self.max_surge,res[0]) 
         return res[0], res[1]
