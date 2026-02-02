@@ -1,0 +1,83 @@
+# This script contains functions to create report body for robocommand
+from msgs.report_pb2 import *
+
+def HeartbeatMsg(state:str,lat:float,lon:float,speed:float,heading:float,current_task:str):
+    """
+    Args:
+        state (str): [MANUAL,AUTO,KILLED,UNKNOWN]
+        lat (float): Latitude
+        lon (float): Longitude
+        speed (float): speed in m/s
+        heading (float): heading
+        current_task(str): [UNKNOWN,NONE,NAV_CHANNEL,SPEED_CHALLENGE,OBJECT_DELIVERY,DOCKING,SOUND_SIGNAL]
+
+    Returns:
+        Heartbeat message
+    """
+    states = ["UNKNOWN","KILLED","MANUAL","AUTO"]
+    report_states = [RobotState.STATE_UNKNOWN,
+                     RobotState.STATE_KILLED,
+                     RobotState.STATE_MANUAL,
+                     RobotState.STATE_AUTO
+                     ]
+
+    tasks =  ['UNKNOWN','NONE','NAV_CHANNEL','SPEED_CHALLENGE','OBJECT_DELIVERY','DOCKING','SOUND_SIGNAL']
+    report_tasks = [TaskType.TASK_UNKNOWN,
+                    TaskType.TASK_NONE,
+                    TaskType.TASK_ENTRY_EXIT,
+                    TaskType.TASK_NAV_CHANNEL,
+                    TaskType.TASK_SPEED_CHALLENGE,
+                    TaskType.TASK_OBJECT_DELIVERY,
+                    TaskType.TASK_DOCKING,
+                    TaskType.TASK_SOUND_SIGNAL
+                    ]
+
+    if state not in states or current_task not in tasks:
+        return None
+    msg = Report(
+        team_id="ASTA",
+        vehicle_id="1",
+        seq=42,
+        heartbeat = Heartbeat(
+            state = report_states[states.index(state)],
+            position = LatLng(latitude=lat, longitude=lon),
+            spd_mps = float(speed),
+            heading_deg = float(heading),
+            current_task = report_tasks[tasks.index(current_task)],
+        )
+    )
+    return msg
+
+def GatePassMsg(type, lat, lon):
+    """
+    Args:
+        Type (String): ENTRY or EXIT
+        lat (float): Latitude
+        lon (float): Longitude
+
+    Returns:
+        GatePass message
+    """
+    report = None
+    if type == "ENTRY":    
+        report =  GatePass(
+            type=GateType.GATE_ENTRY,
+            position=LatLng(latitude=lat, longitude=lon),
+        )
+
+    if type == "EXIT":    
+        report = GatePass(
+            type=GateType.GATE_EXIT,
+            position=LatLng(latitude=lat, longitude=lon),
+        )
+
+    if report is None:
+        return None
+    msg = Report(
+        team_id="ASTA",
+        vehicle_id="1",
+        seq=42,
+        gate_pass = report
+    )
+    return msg
+
