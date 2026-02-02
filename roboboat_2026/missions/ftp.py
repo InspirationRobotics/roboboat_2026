@@ -26,7 +26,8 @@ def main():
     rclpy.init()
     client = JsonWaypointClient()
 
-    json_path = "/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json"
+    json_path = "/home/chaser0721/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json"
+    # "/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json"  
     waypoints = client.load_waypoints(json_path)
     client.send_waypoints(waypoints)
 
