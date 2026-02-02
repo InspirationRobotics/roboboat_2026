@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float32, Float32MultiArray
+from std_msgs.msg import Float32, Float32MultiArray, String
 from std_srvs.srv import Trigger
 from sensor_msgs.msg import NavSatFix, NavSatStatus
-from roboboat_2026.util import deviceHelper
 from threading import Thread, Lock
 import serial
 import time
@@ -23,7 +22,7 @@ class Teensy:
             self.port.write(str(parsed).encode())
         
 
-    def read_GPS(self):
+    def read(self):
         with self.lock:
             return self.port.readline()
 
@@ -34,10 +33,6 @@ class Teensy:
 class TeensyNode(Node):
     def __init__(self):
         super().__init__('Teensy')
-        
-        self.config = deviceHelper.variables
-        self.port   = deviceHelper.dataFromConfig('teensy')
-        self.baurd_rate = self.config.get('teensy').get('rate')
 
         # GPS data
         self.lat = 0.0
@@ -52,9 +47,13 @@ class TeensyNode(Node):
         self.logger.info("Thruster Controller Node Started")
 
         # Thruster driver
-        self.teensy = Teensy(port=self.port,baudrate=self.baurd_rate)
-        self.GPSThread = Thread(target=self.readloop, daemon=True)
+        self.teensy = Teensy()
+
         self.lock = Lock()
+        self.cmd = [0.0,0.0,0.0]
+
+        self.writer = self.create_timer(0.05, self.write_loop)  # 20Hz
+        self.reader = self.create_timer(0.05, self.read_loop)   # 20Hz
 
         # Subscribe to normalized surge/sway/yaw command
         self.subscription = self.create_subscription(
@@ -62,7 +61,7 @@ class TeensyNode(Node):
             '/teensy/pwm',
             self.listener_callback,
             10
-        )   # to send in cli: ros2 topic pub /teensy/pwm std_msgs/msg/Float32MultiArray "{data: [0.0, 0.0, 0.0, 0]}"
+        )   # to send in cli: ros2 topic pub /teensy/pwm std_msgs/msg/Float32MultiArray "{data: [0.0, 0.0, 0.0]}"
 
         self.srv = self.create_service(
             Trigger,
@@ -71,8 +70,24 @@ class TeensyNode(Node):
         )
         # to test service in cli: ros2 service call /toggle_water_pump std_srvs/srv/Trigger "{}"
 
-        # self.GPSThread.start() No GPS reading for Barco Polo
+        # publish robot state
+        self.state_pub = self.create_publisher(
+            String,
+            '/robot_state',
+            10
+        )
+        
 
+    def write_loop(self):
+        
+        with self.lock:
+            surge,sway,yaw = self.cmd  
+            if self.activate_pump:
+                self.teensy.send_msg([surge,sway,yaw,1])
+                
+            else:
+                self.teensy.send_msg([surge,sway,yaw,0])
+                
     def listener_callback(self, msg):
         """
         Expect msg.data = [surge, sway, yaw], each in [-1, 1]
@@ -85,13 +100,10 @@ class TeensyNode(Node):
         sway  = round(float(msg.data[1]), 6)
         yaw   = round(float(msg.data[2]), 6)
 
-        self.logger.info(f"pwm: {[surge,sway,yaw]}")
+        self.logger.debug(f"pwm: {[surge,sway,yaw]}")
+        
         with self.lock:
-            if self.activate_pump:
-                self.teensy.send_msg([surge,sway,yaw,1])
-                
-            else:
-                self.teensy.send_msg([surge,sway,yaw,0])
+            self.cmd = [surge,sway,yaw]
 
     def pump_callback(self, request, response):
         # Do your reset logic here
@@ -102,52 +114,30 @@ class TeensyNode(Node):
         response.success = True
         response.message = 'Pump triggered successfully'
         return response
-    
-    def parseGPS(self, line: str):
-        """Parse GPS data lat,lon,heading,velocity with error handling"""
-        try:
-            parts = line.split(',')
-            if len(parts) != 4:
-                raise ValueError(f"Expected 4 values, got {len(parts)}")
-
-            self.lat, self.lon, self.heading, self.velocity = map(float, parts)
-
-            # Publish NavSatFix
-            msg = NavSatFix()
-            msg.header.stamp = self.get_clock().now().to_msg()
-            msg.header.frame_id = "gps"
-            msg.status.status = NavSatStatus.STATUS_FIX
-            msg.status.service = NavSatStatus.SERVICE_GPS
-            msg.latitude = self.lat
-            msg.longitude = self.lon
-            msg.altitude = 0.0
-            msg.position_covariance_type = NavSatFix.COVARIANCE_TYPE_UNKNOWN
-            self.publisher.publish(msg)
-
-            # Publish heading
-            heading_msg = Float32()
-            heading_msg.data = self.heading
-            self.heading_pub.publish(heading_msg)
-
-        except ValueError as ve:
-            self.get_logger().warn(f"Invalid GPS data format: '{line}' | {ve}")
-        except Exception as e:
-            self.get_logger().warn(f"Unexpected error parsing GPS line: '{line}' | {e}")
 
     def readloop(self):
-        while rclpy.ok():
-            line = self.teensy.read_GPS().decode('utf-8').strip()
+        try:
+            line = self.teensy.read().decode('utf-8').strip()
             if line:
-                try:
-                    self.parseGPS(line)
-                except Exception as e:
-                    self.get_logger().warn(f"Failed to parse GPS line: {line} | {e}")
-            time.sleep(0.5)
+                msg = String()
+                state = None
+                if int(line)==1:
+                    state = "AUTO"
+                elif int(line)==0:
+                    state = "MANUAL"
+                else:
+                    return
+                msg.data = state 
+                self.state_pub.publish(msg)
+
+        except Exception as e:
+            self.get_logger().warn(f"Exception in readloop, line is {line}")
+            self.get_logger().wanr(e)
 
     def destroy_node(self):
         self.get_logger().info("Stopping thrusters...")
         self.teensy.send_msg([0,0,0,0])
-        self.GPSThread.join(timeout=1)
+        # self.GPSThread.join(timeout=1) no GPS for barco Polo
         super().destroy_node()
 
 def main(args=None):

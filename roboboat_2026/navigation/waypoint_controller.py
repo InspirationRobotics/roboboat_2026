@@ -9,6 +9,36 @@ from std_msgs.msg import Empty
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32MultiArray, String
 from roboboat_2026.util.helper import heading_error, get_heading_from_coords
+
+class SimpleControl:
+    def __init__(self):
+        self.max_surge = 1
+        self.max_yaw = 0.6
+        self.last_surge = 0.0
+    
+    def control(self,distance, heading_error):
+
+        res = [self.last_surge,0.0]        
+        if distance < 5:
+            res[0] = max(float(distance/4) * self.max_surge,0.2)
+        
+        if heading_error>0:
+            res[1] = max(abs(heading_error/180) * self.max_yaw,0.3) if abs(heading_error) > 10 else 0.0
+        else:
+            res[1] = - max(abs(heading_error/180) * self.max_yaw,0.3) if abs(heading_error) > 10 else 0.0
+
+        step_up = abs(res[0] - self.last_surge)
+        if step_up > 0.1:
+            # force a small increase
+            if res[0] > self.last_surge:
+                res[0] = self.last_surge + 0.1
+            else:
+                res[0] = self.last_surge - 0.1
+
+        res[0] = min(self.max_surge,res[0]) 
+        return res[0], res[1]
+    
+
 def simpleControl(distance, heading_error):
     max_surge = 0.8
     max_yaw = 0.5
@@ -31,6 +61,7 @@ class WaypointService(Node):
         self.position = None
         self.heading = None
         self.current_task = None
+        self.controller = SimpleControl()
 
         self.task_map = ['UNKNOWN','NONE','NAV_CHANNEL','SPEED_CHALLENGE','OBJECT_DELIVERY','DOCKING','SOUND_SIGNAL']
 
@@ -41,7 +72,7 @@ class WaypointService(Node):
             self.add_waypoint_callback,
             10
         )
-        
+
         self.create_subscription(
             PoseStamped,
             '/fused/pose',
@@ -135,7 +166,7 @@ class WaypointService(Node):
             return
 
         self.get_logger().info(f"{distance:.2f} m to goal | heading error: {error_heading:.1f}")
-        surge, yaw = simpleControl(distance, error_heading)
+        surge, yaw = self.controller.control(distance, error_heading)
         pwm = Float32MultiArray()
         pwm.data = [float(surge), 0.0, float(yaw)]
         self.pwm_pub.publish(pwm)
