@@ -148,8 +148,9 @@ def main():
     rclpy.init()
     client = WaypointFollower()
 
-    json_path = "/home/chaser0721/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json"
+    json_path = "/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json"
     # "/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json"  
+    # "/home/chaser0721/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json"
     client.run(path=json_path)
 
     client.destroy_node()
