@@ -1,0 +1,13 @@
+# Goal
+string waypoint_path
+
+---
+# Result
+bool success
+string message
+
+---
+# Feedback
+float32 distance_to_goal
+float32 heading_error
+string current_task
