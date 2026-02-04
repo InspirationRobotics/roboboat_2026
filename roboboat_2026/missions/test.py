@@ -1,53 +1,57 @@
 #!/usr/bin/env python3
 import rclpy
-from rclpy.node import Node
-from std_msgs.msg import String, Bool
-from std_srvs.srv import Trigger
-import sys
 import time
+import math
+from rclpy.node import Node
+from std_msgs.msg import Float32MultiArray, String, Bool
+from threading import Thread, Lock
+import json
 
+class FinalMission(Node):
+    def __init__(self):
+        super().__init__('jFinal')
+        self.wp_path_pub = self.create_publisher(String, '/waypoint_path', 10)
+        self.navchannel_activate_pub = self.create_publisher(Bool, '/NavChannel_start', 10)
+        self.wp_feedback_sub = self.create_subscription(Bool, '/WP_finished', self.waypoint_cb, 1)
+        self.nc_feedback_sub_feedback_sub = self.create_subscription(Bool, '/NavChannel_finished', self.navchannel_cb, 1)
+        self.wp_finished = False
+        self.nav_channel_finished = False
+        self.main_thread = Thread(target=self.run,daemon=True)
+        self.main_thread.start()
+        self.get_logger().info("Mission ready")
+        rclpy.spin(self)
+
+
+    def send_waypoints(self, path):
+        path_msg = String()
+        path_msg.data = path
+        self.wp_path_pub.publish(path_msg)
+
+    def activate_nav_channel(self):
+        msg = Bool()
+        msg.data = True
+        self.navchannel_activate_pub.publish(msg)
+    def waypoint_cb(self,msg):
+        self.wp_finished = msg.data
+    
+    def navchannel_cb(self,msg):
+        self.nav_channel_finished = msg.data
+
+    def run(self):
+        self.activate_nav_channel()
+
+        while not self.nav_channel_finished:
+            print("waiting for nav channel mission")
+            time.sleep(1)
+        
+        
 
 def main():
-
-    
-    waypoint_path = "/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json"
-    
     rclpy.init()
-    node = Node('waypoint_client')
-    
-    # Create publisher for path
-    path_pub = node.create_publisher(String, '/waypoint_path', 10)
-    state_pub = node.create_publisher(Bool, '/WPFollower_state', 10)
-    # Create service client
-    client = node.create_client(Trigger, 'follow_waypoints')
-    
-    # Wait for service
-    node.get_logger().info('Waiting for follow_waypoints service...')
-    while not client.wait_for_service(timeout_sec=1.0):
-        node.get_logger().info('Service not available, waiting...')
-    
-    # Publish waypoint path
-    msg = String()
-    msg.data = waypoint_path
-    path_pub.publish(msg)
-    node.get_logger().info(f'Published waypoint path: {waypoint_path}')
-    
-    state_msg = Bool()
-    state_msg.data = True
-    state_pub.publish(state_msg)
-    node.get_logger().info(f'Set state to Active')
-    # Wait a bit for message to be received
-    time.sleep(0.5)
-    
-    response = future.result()
-    if response.success:
-        node.get_logger().info(f'✓ SUCCESS: {response.message}')
-    else:
-        node.get_logger().error(f'✗ FAILED: {response.message}')
-    
-    node.destroy_node()
+    client = FinalMission()
+
+    client.destroy_node()
     rclpy.shutdown()
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
