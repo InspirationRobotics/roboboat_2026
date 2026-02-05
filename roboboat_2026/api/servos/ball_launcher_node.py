@@ -4,15 +4,19 @@ import time
 from rclpy.node import Node
 from std_srvs.srv import Trigger
 from roboboat_2026.api.servos.racquetball_launcher import ArdiunoCompound
+from roboboat_2026.util import deviceHelper
 
 class BallLauncherNode(Node):
     def __init__(self):
         super().__init__("ball_launcher_node")
 
-
+        self.config = deviceHelper.variables
+        self.port   = deviceHelper.dataFromConfig('ball_launcher')
+        self.baurd_rate = self.config.get('ball_launcher').get('rate')
+        
         # Initialize GPS (threaded=True)
         self.get_logger().info("Starting racquetball launcher...")
-        self.launcher = ArdiunoCompound(port="/dev/ttyACM1")
+        self.launcher = ArdiunoCompound(port=self.port,baudrate=self.baurd_rate)
         
         self.srv = self.create_service(
             Trigger,
