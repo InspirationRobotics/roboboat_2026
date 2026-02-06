@@ -29,6 +29,7 @@ class FinalMission(Node):
     
     def run(self):
         # Entry & Exit Gate mission
+        self.wp_finished = False
         self.send_waypoints(path="/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json")
 
         while not self.wp_finished:
@@ -36,6 +37,7 @@ class FinalMission(Node):
             time.sleep(1)
 
         # Nav Channel
+        self.wp_finished = False
         self.send_waypoints(path="/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json")
         while not self.wp_finished:
             time.sleep(1)
