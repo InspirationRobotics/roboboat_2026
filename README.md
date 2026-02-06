@@ -1,5 +1,5 @@
 # RoboBoat_2026 (Barco Polo Software Package v2.0)
-Team Inspiration's Codebase for the 2025 RoboBoat Competition. We utilize a single ASV (autonomous surface vessel). See [Hardware Prerequisites](#hardware-prerequisites) for a more detailed specification of our current system.
+Team Inspiration's Codebase for the 2026 RoboBoat Competition. We utilize a single ASV (autonomous surface vessel). See [Hardware Prerequisites](#hardware-prerequisites) for a more detailed specification of our current system.
 Before developing ANY code, please read the [format](#format) section thoroughly.
 
 ## Structure
@@ -63,7 +63,7 @@ roboboat_2026
 ## Usage
 After cloning the repository, navigate to the RoboBoat_2025 repository:
 ```bash
-cd RoboBoat_2025
+cd RoboBoat_2026
 ```
 
 ### Running the system
@@ -135,8 +135,9 @@ Mapping integrates perception and control modules to determine the state of the 
     - Implement a more accurate GPS waypoint worflow. Possibilities include obtaining GPS module, more accurate rangefinder, creating lines of intersection between reference points to ensure that the point is in the correct position.
     - Create a visualizer/app to plot waypoints on a course. Plotting waypoints and movement inside this visualizer, and then running the program will automatically be the mission path for the system.
 2. Autonomous Mapping:
-    - 
+    - Camera detects mission targets, fused with LiDar to give a position estimate of the detected mission target.
+    - Used Kalman Filter to track the mission targets overtime.
 
 ### Mission Planning
-TBD
+At this current version, the software stack uses sequential mission logic.
 
