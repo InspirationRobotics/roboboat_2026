@@ -91,9 +91,9 @@ void moveThrusters(double surge, double sway, double yaw){
     double m4 =  - surge - sway + yaw; // aft_starboard
 
     pwm1 = 1500 + m1*400;      // forward_port
-    pwm2 = 1500 + m2*400;      // forward_starboard
-    pwm3 = 1500 + m3*400;      // aft_port
-    pwm4 = 1500 + m4*400;      // aft_starboard - FIXED this one
+    pwm2 = 1500 + m2*350;      // forward_starboard
+    pwm3 = 1500 + m3*350;      // aft_port
+    pwm4 = 1500 + m4*350;      // aft_starboard - FIXED this one
 
     pwm1 = constrain(pwm1, minPulse, maxPulse);
     pwm2 = constrain(pwm2, minPulse, maxPulse);
