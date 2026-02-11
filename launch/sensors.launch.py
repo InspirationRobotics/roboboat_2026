@@ -38,9 +38,17 @@ def generate_launch_description():
         output='screen'
     )
 
+    # Teensy node
+    teensy_node = Node(
+        package='roboboat_2026',
+        executable='teensy_node',
+        output='screen'
+    )
+
 
     return LaunchDescription([
         livox_launch,
         depthai_launch,
-        gps_node
+        gps_node,
+        teensy_node
     ])
