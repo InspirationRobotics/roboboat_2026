@@ -118,7 +118,8 @@ class TeensyNode(Node):
     def read_loop(self):
         line = ""
         try:
-            line = self.teensy.read().decode('utf-8').strip()
+            with self.lock:
+                line = self.teensy.read().decode('utf-8').strip()
             if line:
                 msg = String()
                 state = None
