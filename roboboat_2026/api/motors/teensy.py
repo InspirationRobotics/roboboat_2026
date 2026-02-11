@@ -133,7 +133,7 @@ class TeensyNode(Node):
 
         except Exception as e:
             self.get_logger().warn(f"Exception in readloop, line is {line}")
-            self.get_logger().wanr(e)
+            self.get_logger().warn(e)
 
     def destroy_node(self):
         self.get_logger().info("Stopping thrusters...")
