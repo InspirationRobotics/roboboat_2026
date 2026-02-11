@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from google.protobuf.timestamp_pb2 import Timestamp
-from msgs.report_pb2 import *
-from report_body import HeartbeatMsg,GatePassMsg
+from roboboat_2026.report.msgs.report_pb2 import *
+from roboboat_2026.report.report_body import HeartbeatMsg,GatePassMsg
 import socket, struct
 import math
 import rclpy
