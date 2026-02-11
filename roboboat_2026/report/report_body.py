@@ -1,5 +1,5 @@
 # This script contains functions to create report body for robocommand
-from msgs.report_pb2 import *
+from roboboat_2026.report.msgs.report_pb2 import *
 
 def HeartbeatMsg(state:str,lat:float,lon:float,speed:float,heading:float,current_task:str):
     """
