@@ -41,7 +41,7 @@ class RBClient(Node):
 
         # Serialize (binary protobuf) and send with 4-byte big-endian length prefix,
         wire = msg.SerializeToString()
-        frame = struct.pack("!I", len(wire)) + wire + "test".encode()
+        frame = b'$R' + struct.pack("!B", len(wire)) + wire + b'!!'
 
         with socket.create_connection(("10.10.10.1", 50000)) as s:
             s.sendall(frame)
