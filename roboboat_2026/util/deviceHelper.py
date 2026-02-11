@@ -22,7 +22,10 @@ file_dir = os.path.dirname(os.path.abspath(__file__)) # Obtain the file director
 # Load the configuration of Barco Polo/Charlie
 hostname = platform.node()
 print(f"Hostname is: {hostname}")
-variables = load_json(f"{file_dir}/../config/roboboat.json")
+if hostname != "55502e621aa3":
+    variables = load_json(f"{file_dir}/../config/barco.json")
+else:
+    variables = load_json(f"{file_dir}/../config/crusader.json")
     
     
 def findFromId(ids):
