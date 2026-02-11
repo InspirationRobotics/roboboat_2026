@@ -34,19 +34,14 @@ def HeartbeatMsg(state:str,lat:float,lon:float,speed:float,heading:float,current
 
     if state not in states or current_task not in tasks:
         return None
-    msg = Report(
-        team_id="ASTA",
-        vehicle_id="1",
-        seq=42,
-        heartbeat = Heartbeat(
-            state = report_states[states.index(state)],
-            position = LatLng(latitude=lat, longitude=lon),
-            spd_mps = float(speed),
-            heading_deg = float(heading),
-            current_task = report_tasks[tasks.index(current_task)],
-        )
+    
+    return Heartbeat(
+        state = report_states[states.index(state)],
+        position = LatLng(latitude=lat, longitude=lon),
+        spd_mps = float(speed),
+        heading_deg = float(heading),
+        current_task = report_tasks[tasks.index(current_task)],
     )
-    return msg
 
 def GatePassMsg(type, lat, lon):
     """
@@ -58,26 +53,16 @@ def GatePassMsg(type, lat, lon):
     Returns:
         GatePass message
     """
-    report = None
     if type == "ENTRY":    
-        report =  GatePass(
+        return GatePass(
             type=GateType.GATE_ENTRY,
             position=LatLng(latitude=lat, longitude=lon),
         )
 
     if type == "EXIT":    
-        report = GatePass(
+        return GatePass(
             type=GateType.GATE_EXIT,
             position=LatLng(latitude=lat, longitude=lon),
         )
 
-    if report is None:
-        return None
-    msg = Report(
-        team_id="ASTA",
-        vehicle_id="1",
-        seq=42,
-        gate_pass = report
-    )
-    return msg
-
+    return None

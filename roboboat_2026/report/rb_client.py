@@ -3,9 +3,11 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from msgs.report_pb2 import *
 from report_body import HeartbeatMsg,GatePassMsg
 import socket, struct
+import math
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float32, Float32MultiArray
+from std_msgs.msg import Float32, Float32MultiArray, String
+from geometry_msgs.msg import PoseStamped, TwistStamped
 from std_srvs.srv import Trigger
 
 class RBClient(Node):
@@ -16,11 +18,11 @@ class RBClient(Node):
         self.vehicle_ids = {"Barco_Polo":123,"Crusader":123}
         
         # Track basic robot information
-        self.pos = [] # lat,lon
+        self.cur_state:str = "UNKNOWN"
+        self.pos = None # lat,lon
         self.heading:float = None
-        self.vel:float = None # speed
-        self.current_state = "UNKNOWN"
-        self.current_task = str() # current task
+        self.vel:float = 0  # speed
+        self.cur_task:str = "UNKNOWN" # current task
         
         # Create Subscribers and Service Servers
         # self.create_subscribers()
@@ -33,16 +35,7 @@ class RBClient(Node):
         self.reporter  = self.create_timer(0.2, self.report_loop)  # 5Hz for all msgs
         self.loop_counter = 0
 
-    def __send(self,report):
-        msg = Report(
-            team_id="ASTA",
-            vehicle_id="Bob-01",
-            seq=42,
-            gate_pass=GatePass(
-                type=GateType.GATE_ENTRY,
-                position=LatLng(latitude=27.374736, longitude=-82.452767),
-            ),
-        )
+    def __send(self,msg):
         ts = Timestamp(); ts.FromDatetime(datetime.now(timezone.utc))
         msg.sent_at.CopyFrom(ts)
 
@@ -55,10 +48,10 @@ class RBClient(Node):
 
     def organize_loop(self): # 1 Hz
         try:
-            if self.current_state is None or self.pos is None or self.heading is None or self.current_task is None:
-                self.report_queue = [HeartbeatMsg(state="UNKNOWN",lat= 32.00,lon= 31.00,speed=0.0,heading= 1.0,current_task="UNKNOWN")]
-            else:
-                self.report_queue = [HeartbeatMsg(state=self.current_state,lat= self.pos[0],lon= self.pos[1],speed=self.vel,heading= self.heading,current_task=self.current_task)]
+            if self.pos is None: 
+                self.get_logger().warn("GPS data not received")
+                return
+            self.report_queue = [HeartbeatMsg(state=self.cur_state,lat= self.pos[0],lon=self.pos[1],speed=self.vel,heading= self.heading,current_task=self.cur_task)]
             while len(self.report_queue) <= 5 and len(self.msg_queue)>0:
                     self.report_queue.append(self.msg_queue.pop(0))
         except Exception as e:
@@ -82,6 +75,19 @@ class RBClient(Node):
             3
         )
 
+        self.sub_state = self.create_subscription(
+            String,
+            '/robot_state',
+            self.state_callback,
+            3
+        )
+
+        self.sub_pose = self.create_subscription(
+            TwistStamped,
+            '/fused/velocity',
+            self.twist_callback,
+            3
+        )
         # TODO subscribe to other topics for velocity, robot state, current task
 
     def create_services(self):
@@ -95,8 +101,14 @@ class RBClient(Node):
     """Topic Callbacks"""
     def gps_callback(self, msg):
         self.pos = [msg.data[0],msg.data[1]]
-        self.heading = msg.data[3]
+        self.heading = msg.data[2]
     
+    def state_callback(self, msg):
+        self.state = msg.data
+
+    def twist_callback(self,msg):
+        self.vel = math.sqrt((msg.twist.linear.x)^2 + (msg.twist.linear.y)^2)
+
     """Service Callbacks"""
     
 
