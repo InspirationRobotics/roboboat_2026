@@ -116,6 +116,7 @@ class TeensyNode(Node):
         return response
 
     def readloop(self):
+        line = ""
         try:
             line = self.teensy.read().decode('utf-8').strip()
             if line:
