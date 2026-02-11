@@ -115,7 +115,7 @@ class TeensyNode(Node):
         response.message = 'Pump triggered successfully'
         return response
 
-    def readloop(self):
+    def read_loop(self):
         line = ""
         try:
             line = self.teensy.read().decode('utf-8').strip()
