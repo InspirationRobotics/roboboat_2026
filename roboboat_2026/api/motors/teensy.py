@@ -120,6 +120,8 @@ class TeensyNode(Node):
         try:
             with self.lock:
                 line = self.teensy.read().decode('utf-8').strip()
+            if len(line) >1:
+                return 
             if line:
                 msg = String()
                 state = None
