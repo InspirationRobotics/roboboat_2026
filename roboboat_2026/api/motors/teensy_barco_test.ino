@@ -3,7 +3,7 @@
 #include <Servo.h>
 #include <math.h>
 #include <Adafruit_NeoPixel.h>
-#define LED_PIN     22        // Data pin (change if needed)  A8
+#define LED_PIN     23        // Data pin (change if needed)  A8
 #define NUM_LEDS    60       // Number of LEDs
 #define BRIGHTNESS  75      // 0–255 (start lower to be safe)
 
@@ -27,7 +27,7 @@ const int escPin2 = 37;
 const int escPin3 = 36;
 const int escPin4 = 35;
 const int pumpPin = 2;
-const int statePin = 23; // A9
+const int statePin = 22; // A9
 const int minPulse = 1100;
 const int maxPulse = 1900;
 
