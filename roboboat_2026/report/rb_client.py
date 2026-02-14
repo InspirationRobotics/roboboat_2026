@@ -150,7 +150,7 @@ class RBClient(Node):
             '/report',
             self.report_callback,
             3
-        )
+        )  # ros2 topic pub /report std_msgs/msg/String "{data: 'GatePass,ENTRY,32.112345,-21.12345'}" -r 1
 
     """Topic Callbacks"""
     def gps_callback(self, msg):
