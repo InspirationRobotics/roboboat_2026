@@ -3,8 +3,8 @@
 #include <Servo.h>
 #include <math.h>
 #include <Adafruit_NeoPixel.h>
-#define LED_PIN     23        // Data pin (change if needed)  A8
-#define NUM_LEDS    60       // Number of LEDs
+#define LED_PIN     23        // Data pin (change if needed)  A9
+#define NUM_LEDS    144       // Number of LEDs
 #define BRIGHTNESS  75      // 0–255 (start lower to be safe)
 
 Adafruit_NeoPixel strip(
@@ -27,7 +27,7 @@ const int escPin2 = 37;
 const int escPin3 = 36;
 const int escPin4 = 35;
 const int pumpPin = 2;
-const int statePin = 22; // A9
+const int statePin = 22; // A8
 const int minPulse = 1100;
 const int maxPulse = 1900;
 
@@ -113,7 +113,7 @@ void moveThrusters(double surge, double sway, double yaw){
     double m3 =  surge - sway + yaw; // aft_port
     double m4 =  - surge - sway + yaw; // aft_starboard
 
-    pwm1 = 1500 + m1*400;      // forward_port
+    pwm1 = 1500 + m1*300;      // forward_port
     pwm2 = 1500 + m2*400;      // forward_starboard
     pwm3 = 1500 + m3*400;      // aft_port
     pwm4 = 1500 + m4*400;      // aft_starboard - FIXED this one
