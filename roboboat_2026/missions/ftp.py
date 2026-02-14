@@ -98,9 +98,9 @@ class WaypointFollowerService(Node):
 
     def control_loop(self):
         if self.reached_all:
-            state_msg = Bool
+            state_msg = Bool()
             state_msg.data = True
-            self.state_pub(state_msg)
+            self.state_pub.publish(state_msg)
 
         if not self.active:
             return
@@ -143,9 +143,9 @@ class WaypointFollowerService(Node):
                 pwm = Float32MultiArray()
                 pwm.data = [0.0, 0.0, 0.0]
                 self.pwm_pub.publish(pwm)
-                state_msg = Bool
+                state_msg = Bool()
                 state_msg.data = True
-                self.state_pub(state_msg)
+                self.state_pub.publish(state_msg)
             return
         
         self.get_logger().info(f"{distance:.2f} m to goal | heading error: {error_heading:.1f}")

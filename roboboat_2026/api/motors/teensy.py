@@ -12,8 +12,8 @@ class Teensy:
     def __init__(self, port="/dev/ttyACM0", baudrate=115200):
         self.port = serial.Serial(port=port, baudrate=baudrate, timeout=0.1)
         self.lock = Lock()
-        self.send_msg([0.0,0.0,0.0,0])  # surge,sway,yaw,activate_pump (1 to activate 0 to deactivate)
-        time.sleep(1)
+        self.send_msg([0.0,0.0,0.0,1])  # surge,sway,yaw,activate_pump (1 to activate 0 to deactivate)
+        time.sleep(5)
 
 
     def send_msg(self, command):
@@ -96,9 +96,9 @@ class TeensyNode(Node):
             self.get_logger().error("cmd_vel_normalized must be [surge, sway, yaw]")
             return
 
-        surge = round(float(msg.data[0]), 6)
-        sway  = round(float(msg.data[1]), 6)
-        yaw   = round(float(msg.data[2]), 6)
+        surge = -round(float(msg.data[0]), 6)
+        sway  = -round(float(msg.data[1]), 6)
+        yaw   = -round(float(msg.data[2]), 6)
 
         self.logger.debug(f"pwm: {[surge,sway,yaw]}")
         
@@ -115,24 +115,34 @@ class TeensyNode(Node):
         response.message = 'Pump triggered successfully'
         return response
 
-    def readloop(self):
+    def read_loop(self):
+        line = ""
         try:
-            line = self.teensy.read().decode('utf-8').strip()
-            if line:
-                msg = String()
-                state = None
-                if int(line)==1:
-                    state = "AUTO"
-                elif int(line)==0:
-                    state = "MANUAL"
-                else:
-                    return
-                msg.data = state 
-                self.state_pub.publish(msg)
+            raw = self.teensy.read()
+            if not raw:
+                return
+            line = raw.decode("utf-8", errors="ignore")
+            line = line.replace("\x00", "").strip()
+
+            if not line:
+                return 
+            if not line.isdigit():
+                self.get_logger().warning(f"Non-numeric line from teensy: {repr(line)}")
+                return
+            val = int(line)
+            if val == 1:
+                state = "AUTO"
+            elif val == 0:
+                state = "MANUAL"
+            else:
+                return 
+            msg = String()
+            msg.data = state
+            self.state_pub.publish(msg)
 
         except Exception as e:
-            self.get_logger().warn(f"Exception in readloop, line is {line}")
-            self.get_logger().wanr(e)
+            self.get_logger().warning(f"Exception in read_loop, line is {repr(line)}")
+            self.get_logger().error(str(e))
 
     def destroy_node(self):
         self.get_logger().info("Stopping thrusters...")
