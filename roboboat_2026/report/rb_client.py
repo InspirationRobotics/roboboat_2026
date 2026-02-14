@@ -26,8 +26,8 @@ class RBClient(Node):
         self.cur_task:str = "UNKNOWN" # current task
         
         # Create Subscribers and Service Servers
-        # self.create_subscribers()
-        # self.create_services()
+        self.create_subscribers()
+
 
         # send loop 
         self.msg_queue = []
