@@ -5,6 +5,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from nav_msgs.msg import Odometry
+from rclpy.parameter import Parameter
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -110,7 +111,7 @@ class GPSFusion(Node):
         self.pose_pub = self.create_publisher(PoseStamped, '/fused/pose', 10)
         self.velocity_pub = self.create_publisher(TwistStamped, '/fused/velocity', 10)
         self.odom_pub = self.create_publisher(Odometry, '/fused/odometry', 10)
-        self.declare_parameter('origin', [])
+        self.declare_parameter('origin', Parameter.Type.DOUBLE_ARRAY)
         
         # Reference GPS coordinates (set on first GPS message)
         self.gps_origin = None
