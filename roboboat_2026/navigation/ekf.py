@@ -110,6 +110,7 @@ class GPSFusion(Node):
         self.pose_pub = self.create_publisher(PoseStamped, '/fused/pose', 10)
         self.velocity_pub = self.create_publisher(TwistStamped, '/fused/velocity', 10)
         self.odom_pub = self.create_publisher(Odometry, '/fused/odometry', 10)
+        self.declare_parameter('origin', [])
         
         # Reference GPS coordinates (set on first GPS message)
         self.gps_origin = None
@@ -184,7 +185,14 @@ class GPSFusion(Node):
         # print("Recieved GPS")
         if self.gps_origin is None:
             self.get_logger().info(f'GPS origin set at: {lat:.6f}, {lon:.6f}')
-            self.declare_parameter('origin', [lat,lon])
+            self.set_parameters([
+                rclpy.parameter.Parameter(
+                    'origin',
+                    rclpy.Parameter.Type.DOUBLE_ARRAY,
+                    [lat, lon]
+                )
+            ])
+            
         
         # Convert heading to yaw
         yaw = self.heading_to_yaw(heading)
