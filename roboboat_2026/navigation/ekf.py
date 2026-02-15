@@ -130,6 +130,13 @@ class GPSFusion(Node):
         if self.gps_origin is None:
             self.gps_origin = (lat, lon)
             self.get_logger().info(f"GPS origin at lat -> {lat}, long -> {lon}")
+            self.set_parameters([
+                rclpy.parameter.Parameter(
+                    'origin',
+                    rclpy.Parameter.Type.DOUBLE_ARRAY,
+                    [lat, lon]
+                )
+            ])
             return np.array([0.0, 0.0])
         
         lat0, lon0 = self.gps_origin
@@ -181,17 +188,6 @@ class GPSFusion(Node):
         
         # Convert GPS to local coordinates
         position = self.gps_to_local(lat, lon)
-        
-        # print("Recieved GPS")
-        if self.gps_origin is None:
-            self.get_logger().info(f'GPS origin set at: {lat:.6f}, {lon:.6f}')
-            self.set_parameters([
-                rclpy.parameter.Parameter(
-                    'origin',
-                    rclpy.Parameter.Type.DOUBLE_ARRAY,
-                    [lat, lon]
-                )
-            ])
             
         
         # Convert heading to yaw
