@@ -15,8 +15,8 @@ class Navchannel(Node):
     def __init__(self):
         super().__init__('nav_channel')
         # Params
-        self.declare_parameter('look_forward_distance', 3.0)   # meters, minimum of 1 meters
-        self.declare_parameter('time_out', 60) # s
+        self.declare_parameter('look_forward_distance', 1.5)   # meters, minimum of 1 meters
+        self.declare_parameter('time_out', 120) # s
         self.declare_parameter('use_xy', True) # bool use xy or lat lon
         self.declare_parameter('end_point', [100,100]) # end point in either xy or lat lon
         self.declare_parameter('end_threshold', 5) # end point deteciton threshold in meters
@@ -28,7 +28,7 @@ class Navchannel(Node):
         self.end_threshold = self.get_parameter('end_threshold').value
 
         # Subscribers
-        self.create_subscription(OccupancyGrid,'/test_costmap',self.map_cb,2)
+        self.create_subscription(OccupancyGrid,'/lidar_map',self.map_cb,2)
         self.create_subscription(Float32MultiArray, '/GPS', self.gps_cb,2)
         self.create_subscription(PoseStamped, '/fused/pose', self.pose_cb, 1)
         self.create_subscription(Bool,'/NavChannel_start',self.active_cb, 1)
@@ -171,7 +171,7 @@ class Navchannel(Node):
 
                 self.get_logger().info(f"left cost {left_cost}, right cost {right_cost}")
                 
-                if abs(left_cost-right_cost)/((left_cost+right_cost)/2) < 0.05:
+                if abs(left_cost-right_cost)/((left_cost+right_cost)/2) < 0.45:
                     # go straight
                     self.get_logger().info(f"cost difference is {abs(left_cost-right_cost)}, going forward")
                     pwm_msg = Float32MultiArray()
@@ -181,12 +181,12 @@ class Navchannel(Node):
                     # yaw left
                     self.get_logger().info("Yawing left")
                     pwm_msg = Float32MultiArray()
-                    pwm_msg.data = [0.8,0.0,0.-0.4]
+                    pwm_msg.data = [0.8,0.0,0.-0.15]
                     self.pwm_pub.publish(pwm_msg)
                 else:
                     self.get_logger().info("Yawing right")
                     pwm_msg = Float32MultiArray()
-                    pwm_msg.data = [0.8,0.0,0.4]
+                    pwm_msg.data = [0.8,0.0,0.15]
                     self.pwm_pub.publish(pwm_msg)
                 
                 time.sleep(0.1)
