@@ -64,12 +64,13 @@ class WaypointFollowerService(Node):
         while not self.client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for parameter service...')
         self.request = GetParameters.Request()
-        self.request.names = ['my_param']
+        self.request.names = ['origin']
 
         # Get origin
         future = self.client.call_async(self.request)
         rclpy.spin_until_future_complete(self, future)
         if future.result():
+            print(future.result())
             self.origin =  future.result().values[0]  # the origin of our robot xy plane
         else:
             raise RuntimeError('Parameter request failed')
@@ -137,7 +138,7 @@ class WaypointFollowerService(Node):
         with open(path, 'r') as f:
             waypoints = json.load(f)['waypoints']
             for wp in waypoints:
-                self.queue.append([float(wp['x']), float(wp['y']),wp['task']])
+                self.queue.append([float(wp['lat']), float(wp['lon']),wp['task']])
                 self.latlon2xy()
                 self.get_logger().info(f"Received waypoint: {wp}")
 
