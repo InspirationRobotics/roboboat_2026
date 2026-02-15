@@ -182,6 +182,7 @@ class GPSFusion(Node):
         
         if self.gps_origin is None:
             self.get_logger().info(f'GPS origin set at: {lat:.6f}, {lon:.6f}')
+            self.declare_parameter('origin', [lat,lon])
         
         # Convert heading to yaw
         yaw = self.heading_to_yaw(heading)
