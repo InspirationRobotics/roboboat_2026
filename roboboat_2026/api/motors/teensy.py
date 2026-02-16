@@ -5,6 +5,7 @@ from std_msgs.msg import Float32, Float32MultiArray, String
 from std_srvs.srv import Trigger
 from sensor_msgs.msg import NavSatFix, NavSatStatus
 from threading import Thread, Lock
+from roboboat_2026.util import deviceHelper
 import serial
 import time
 
@@ -34,6 +35,10 @@ class TeensyNode(Node):
     def __init__(self):
         super().__init__('Teensy')
 
+        self.config = deviceHelper.variables
+        self.port   = deviceHelper.dataFromConfig('teensy')
+        self.baurd_rate = self.config.get('teensy').get('rate')
+
         # GPS data
         self.lat = 0.0
         self.lon = 0.0
@@ -47,7 +52,7 @@ class TeensyNode(Node):
         self.logger.info("Thruster Controller Node Started")
 
         # Thruster driver
-        self.teensy = Teensy()
+        self.teensy = Teensy(port=self.port,baudrate=self.baurd_rate)
 
         self.lock = Lock()
         self.cmd = [0.0,0.0,0.0]
