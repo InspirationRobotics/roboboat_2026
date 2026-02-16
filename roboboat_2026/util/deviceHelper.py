@@ -107,7 +107,7 @@ def dataFromConfig(name):
         raise Exception("Invalid Name")
 
     # Serial devices with a 'port' in the JSON
-    if name in ("teensy", "ball_launcher", "gps"):
+    if name in ("teensy", "ball_launcher", "gps", "led"):
         platform_path = device_cfg.get("port")
         if platform_path is None:
             print("id not found")
@@ -127,6 +127,7 @@ def dataFromConfig(name):
     # USB webcam: return its platform 'port' (likely consumed by findCam or similar)
     if name == "web_cam":
         return device_cfg.get("port")
+    
 
     # Fallback: return raw dict
     return device_cfg
