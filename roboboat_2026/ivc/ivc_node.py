@@ -61,6 +61,8 @@ class IVCNode(Node):
             led_msg = Int32()
             led_msg.data = 1
             self.led_pub.publish(led_msg)
+
+            self.get_logger().info(f"Send: {msg.data}")
         except Exception as e:
             self.get_logger().error(f"Exception in send callback {e}")
 
@@ -71,6 +73,7 @@ class IVCNode(Node):
                 msg = String()
                 msg.data = message
                 self.receiver_pub.publish(msg)
+                self.get_logger().info(f"Received: {message}")
 
                 led_msg = Int32()
                 led_msg.data = 2
