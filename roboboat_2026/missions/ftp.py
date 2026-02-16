@@ -7,7 +7,7 @@ from rclpy.node import Node
 
 from std_msgs.msg import Float32MultiArray, String, Bool
 from geometry_msgs.msg import PoseStamped
-
+from rcl_interfaces.srv import GetParameters
 from std_srvs.srv import Trigger
 from std_srvs.srv import SetBool
 
@@ -55,6 +55,26 @@ class WaypointFollowerService(Node):
         self.task_pub = self.create_publisher(String, '/cur_task', 10)
         self.state_pub = self.create_publisher(Bool, '/WP_finished', 10)
 
+        self.client = self.create_client(
+            GetParameters,
+            '/gps_fusion_node/get_parameters'
+        )
+
+        # request origin from ekf node
+        while not self.client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Waiting for parameter service...')
+        self.request = GetParameters.Request()
+        self.request.names = ['origin']
+
+        # Get origin
+        future = self.client.call_async(self.request)
+        rclpy.spin_until_future_complete(self, future)
+        if future.result():
+            print(future.result())
+            self.origin =  future.result().values[0]  # the origin of our robot xy plane
+        else:
+            raise RuntimeError('Parameter request failed')
+        
         # Using a simple string-based service (you'll need to create a custom one)
         # For now, I'll use a workaround with SetBool where the request data field isn't used
         # Better approach: use a std_srvs or create minimal custom service
@@ -89,18 +109,44 @@ class WaypointFollowerService(Node):
         msg.data = [0.0, 0.0, 0.0]
         self.pwm_pub.publish(msg)
 
+    def latlon2xy(self):
+        """Convert all lat/lon in self.queue to local XY (meters)"""
+        
+        lat0 = math.radians(self.origin[0])
+        lon0 = math.radians(self.origin[1])
+
+        R = 6378137.0  # Earth radius in meters (WGS84)
+
+        xy_queue = []
+
+        for wp in self.queue:
+            lat = math.radians(wp[0])
+            lon = math.radians(wp[1])
+            task = wp[2]
+
+            dlat = lat - lat0
+            dlon = lon - lon0
+
+            x = R * dlon * math.cos(lat0)   # East
+            y = R * dlat                    # North
+
+            xy_queue.append([x, y, task])
+
+        self.queue = xy_queue
+
     def load_waypoints(self, path):
         with open(path, 'r') as f:
             waypoints = json.load(f)['waypoints']
             for wp in waypoints:
-                self.queue.append([float(wp['x']), float(wp['y']),wp['task']])
+                self.queue.append([float(wp['lat']), float(wp['lon']),wp['task']])
+                self.latlon2xy()
                 self.get_logger().info(f"Received waypoint: {wp}")
 
     def control_loop(self):
         if self.reached_all:
-            state_msg = Bool
+            state_msg = Bool()
             state_msg.data = True
-            self.state_pub(state_msg)
+            self.state_pub.publish(state_msg)
 
         if not self.active:
             return
@@ -143,9 +189,9 @@ class WaypointFollowerService(Node):
                 pwm = Float32MultiArray()
                 pwm.data = [0.0, 0.0, 0.0]
                 self.pwm_pub.publish(pwm)
-                state_msg = Bool
+                state_msg = Bool()
                 state_msg.data = True
-                self.state_pub(state_msg)
+                self.state_pub.publish(state_msg)
             return
         
         self.get_logger().info(f"{distance:.2f} m to goal | heading error: {error_heading:.1f}")
