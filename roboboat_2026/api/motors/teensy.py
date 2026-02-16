@@ -13,7 +13,7 @@ class Teensy:
     def __init__(self, port="/dev/ttyACM0", baudrate=115200):
         self.port = serial.Serial(port=port, baudrate=baudrate, timeout=0.1)
         self.lock = Lock()
-        self.send_msg([0.0,0.0,0.0,1])  # surge,sway,yaw,activate_pump (1 to activate 0 to deactivate)
+        self.send_msg([0.0,0.0,0.0,0.0,0])  # esc 1-4,activate_pump (1 to activate 0 to deactivate)
         time.sleep(5)
 
 
@@ -87,11 +87,24 @@ class TeensyNode(Node):
         
         with self.lock:
             surge,sway,yaw = self.cmd  
+
+        if deviceHelper.boat == "barco polo":
+            m1 = -surge -sway -yaw
+            m2 =  - surge + sway + yaw
+            m3 =  surge - sway + yaw
+            m4 =  - surge - sway + yaw
+        elif deviceHelper == "crusader":
+            m1 = -surge -sway -yaw
+            m2 =  - surge + sway + yaw
+            m3 =  surge - sway + yaw
+            m4 =  - surge - sway + yaw
+
+        with self.lock:
             if self.activate_pump:
-                self.teensy.send_msg([surge,sway,yaw,1])
+                self.teensy.send_msg([m1,m2,m3,m4,1])
                 
             else:
-                self.teensy.send_msg([surge,sway,yaw,0])
+                self.teensy.send_msg([m1,m2,m3,m4,0])
                 
     def listener_callback(self, msg):
         """
