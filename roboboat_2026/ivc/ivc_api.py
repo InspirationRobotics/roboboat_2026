@@ -1,98 +1,99 @@
 import socket
+import threading
+import queue
 import time
 
-class ASVServer:
-    def __init__(self, port=65432):
-        self.port = port
+class ASVComms:
+    """Base logic for thread-safe communication."""
+    def __init__(self):
         self.conn = None
+        self.receive_queue = queue.Queue() #
+        self.running = False
+        self.lock = threading.Lock() #
+
+    def _receive_thread(self):
+        """Background thread that constantly listens for data."""
+        while self.running:
+            try:
+                with self.lock: # Protect socket access
+                    if not self.conn:
+                        break
+                    self.conn.settimeout(1.0) 
+                    data = self.conn.recv(1024)
+                
+                if data:
+                    msg = data.decode().strip()
+                    self.receive_queue.put(msg) #
+                else:
+                    self.running = False
+            except socket.timeout:
+                continue
+            except Exception as e:
+                print(f"Receive Thread Error: {e}")
+                self.running = False
+
+    def start_threads(self):
+        """Initializes the background listener."""
+        self.running = True
+        self.thread = threading.Thread(target=self._receive_thread, daemon=True) #
+        self.thread.start()
+
+    def get_next_message(self):
+        """Getter for the mission script to pull from the queue."""
+        try:
+            return self.receive_queue.get_nowait() #
+        except queue.Empty:
+            return None
+
+    def send_string(self, message):
+        """Thread-safe send function."""
+        if not message.endswith('\n'):
+            message += '\n'
+        
+        with self.lock: # Prevent race conditions
+            if self.conn:
+                self.conn.sendall(message.encode())
+
+    def stop(self):
+        """Cleanly close the connection."""
+        self.running = False
+        if self.conn:
+            self.conn.close()
+
+# --- Segment 2: The Server Role ---
+class ASVServer(ASVComms):
+    def __init__(self, port=65432):
+        super().__init__()
+        self.port = port
 
     def start(self):
+        """Binds to the Jetson port and waits for the partner boat."""
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind(('192.168.8.229', self.port)) # Barco Polo IP 
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #
+        s.bind(('0.0.0.0', self.port)) # Use 0.0.0.0 for Docker
         s.listen()
-        print(f"Server ASV listening on {self.port}...")
-        self.conn, addr = s.accept()
-        print(f"Connected to Partner: {addr}")
-        return self.conn
+        print(f"Server ASV waiting for partner on port {self.port}...")
+        self.conn, _ = s.accept()
+        print("Partner connected!")
+        self.start_threads() #
 
-    def send_string(self, message):
-        """Sends a raw string message to the connected client."""
-        if self.conn:
-            # Ensure the message ends with a newline for your parser
-            if not message.endswith('\n'):
-                message += '\n'
-            self.conn.sendall(message.encode())
-            print(f"Server Sent: {message.strip()}")
-        else:
-            print("Error: No client connected to server.")
-
-    def receive_string(self, timeout=0.1):
-        """Checks for an incoming message without freezing the script."""
-        target = self.conn if hasattr(self, 'conn') else self.sock
-        
-        if not target:
-            return None
-
-        try:
-            # Set a very short timeout so we don't 'get stuck'
-            target.settimeout(timeout)
-            data = target.recv(1024)
-            if data:
-                return data.decode().strip()
-        except socket.timeout:
-            # No message arrived, just keep going with the mission
-            return None
-        except Exception as e:
-            print(f"Receive error: {e}")
-            return None
-        return None
-
-class ASVClient:
+# --- Segment 3: The Client Role ---
+class ASVClient(ASVComms):
     def __init__(self, server_ip, port=65432):
+        super().__init__()
         self.server_ip = server_ip
         self.port = port
-        self.sock = None
 
     def connect(self, retries=5):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        """Connects to the Leader ASV's IP."""
         for i in range(retries):
             try:
-                self.sock.connect((self.server_ip, self.port))
-                print(f"Connected to Server ASV at {self.server_ip}")
+                self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.conn.connect((self.server_ip, self.port))
+                self.start_threads() #
+                print(f"Connected to Leader at {self.server_ip}")
                 return True
             except Exception:
-                print(f"Connection attempt {i+1} failed. Retrying...")
+                print(f"Retry {i+1}/{retries}...")
                 time.sleep(2)
         return False
-
-    def send_string(self, message):
-        """Sends a raw string message to the server."""
-        if self.sock:
-            if not message.endswith('\n'):
-                message += '\n'
-            self.sock.sendall(message.encode())
-            print(f"Client Sent: {message.strip()}")
-        else:
-            print("Error: Client not connected to server.")
-    
-    def receive_string(self, timeout=0.1):
-        """Checks for an incoming message without freezing the script."""
-        target = self.conn if hasattr(self, 'conn') else self.sock
-        
-        if not target:
-            return None
-
-        try:
-            # Set a very short timeout so we don't 'get stuck'
-            target.settimeout(timeout)
-            data = target.recv(1024)
-            if data:
-                return data.decode().strip()
-        except socket.timeout:
-            # No message arrived, just keep going with the mission
-            return None
-        except Exception as e:
-            print(f"Receive error: {e}")
-            return None
-        return None

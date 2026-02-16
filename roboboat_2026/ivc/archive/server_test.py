@@ -1,4 +1,4 @@
-from ivc_api import ASVServer
+from roboboat_2026.ivc.archive.ivcapi import ASVServer
 import time
 
 comms = ASVServer()
