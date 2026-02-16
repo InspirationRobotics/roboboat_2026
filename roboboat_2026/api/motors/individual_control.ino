@@ -5,21 +5,6 @@
 // =====================================================
 
 #include <Servo.h>
-#include <Adafruit_NeoPixel.h>
-#include <IntervalTimer.h>
-
-// ======================
-// LED Configuration
-// ======================
-#define LED_PIN     23      // A9
-#define NUM_LEDS    144
-#define BRIGHTNESS  75
-
-Adafruit_NeoPixel strip(
-    NUM_LEDS,
-    LED_PIN,
-    NEO_GRB + NEO_KHZ800
-);
 
 // ======================
 // ESC & IO Configuration
@@ -38,8 +23,8 @@ const int pumpPin = 2;
 
 const int statePin = 20;   // A8
 
-const int minPulse = 1400;
-const int maxPulse = 1600;
+const int minPulse = 1100;
+const int maxPulse = 1900;
 const int neutralPulse = 1500;
 
 // ======================
@@ -89,12 +74,13 @@ void writeESCs() {
 // Serial Parser
 // =====================================================
 void parseSerial(String data) {
-    int idx[6];
+    int idx[4];
     int last = 0;
 
-    for (int i = 0; i < 6; i++) {
+    // Find 4 commas (5 fields total)
+    for (int i = 0; i < 4; i++) {
         idx[i] = data.indexOf(',', last);
-        if (idx[i] == -1 && i < 5) return;
+        if (idx[i] == -1) return;  // malformed packet
         last = idx[i] + 1;
     }
 
@@ -103,13 +89,13 @@ void parseSerial(String data) {
     esc_cmd[2] = data.substring(idx[1] + 1, idx[2]).toFloat();
     esc_cmd[3] = data.substring(idx[2] + 1, idx[3]).toFloat();
 
-    activate_pump = data.substring(idx[3] + 1, idx[4]).toInt() == 1;
-    current_led_state = data.substring(idx[4] + 1).toInt();
+    activate_pump = data.substring(idx[3] + 1).toInt() == 1;
 
     for (int i = 0; i < 4; i++) {
         esc_cmd[i] = constrain(esc_cmd[i], -1.0, 1.0);
     }
 }
+
 
 // =====================================================
 // Setup
@@ -157,8 +143,7 @@ void loop() {
         pump.writeMicroseconds(1500);
     }
 
-    state_pin_high = digitalRead(statePin);
-    
+    Serial.println(digitalRead(statePin));
     // ---------- Loop timing ----------
     unsigned long elapsed = millis() - start;
     if (elapsed < loopInterval) {
