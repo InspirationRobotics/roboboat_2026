@@ -6,7 +6,7 @@ comms = ASVClient(server_ip='192.168.8.229')
 
 if comms.connect():
     print("--- Client Listening Mode Active ---")
-    
+    # Use Queue data structure to store message to send (For sending)
     while True:
         # Constantly check for messages
         msg = comms.receive_string(timeout=0.01)
