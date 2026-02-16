@@ -1,7 +1,7 @@
 import time
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float32, Float32MultiArray, String
+from std_msgs.msg import Float32, Float32MultiArray, String, Int32
 from roboboat_2026.ivc.ivc_api import ASVServer, ASVClient
 from roboboat_2026.util import deviceHelper
 from threading import Thread, Lock
@@ -28,7 +28,7 @@ class IVCNode(Node):
         # Flags:
         self.running = True
 
-        # Subscribe to normalized surge/sway/yaw command
+        # Subscribe to message send queue
         self.sender_sub= self.create_subscription(
             String,
             '/ivc/send',
@@ -36,10 +36,17 @@ class IVCNode(Node):
             10
         )   # to send in cli: ros2 topic pub /ivc/send std_msgs/msg/String "{data: 'hello'}"
 
-        # publish robot state
+        # publish message received
         self.receiver_pub = self.create_publisher(
             String,
             '/ivc/receive',
+            10
+        )
+
+        # LED control
+        self.led_pub = self.create_publisher(
+            Int32,
+            '/led_state',
             10
         )
 
@@ -50,6 +57,10 @@ class IVCNode(Node):
         """Send message to target"""
         try:
             self.ASV_conn.send_string(msg.data)
+
+            led_msg = Int32()
+            led_msg.data = 1
+            self.led_pub.publish(led_msg)
         except Exception as e:
             self.get_logger().error(f"Exception in send callback {e}")
 
@@ -60,6 +71,11 @@ class IVCNode(Node):
                 msg = String()
                 msg.data = message
                 self.receiver_pub.publish(msg)
+
+                led_msg = Int32()
+                led_msg.data = 2
+                self.led_pub.publish(led_msg)
+
         except Exception as e:
             self.get_logger().error(f"Exception in listening loop {e}")
 
