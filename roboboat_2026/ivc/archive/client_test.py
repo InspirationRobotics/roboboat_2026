@@ -1,4 +1,4 @@
-from ivc_api import ASVClient
+from roboboat_2026.ivc.archive.ivcapi import ASVClient
 import time
 
 # Use the static IP of your Server Jetson (e.g., 192.168.8.145)
