@@ -30,10 +30,10 @@ Servo aft_port;            // ESC3
 Servo aft_starboard;       // ESC4
 Servo pump;
 
-const int escPin1 = 3;
+const int escPin1 = 38;
 const int escPin2 = 37;
 const int escPin3 = 36;
-const int escPin4 = 4;
+const int escPin4 = 35;
 const int pumpPin = 2;
 
 const int statePin = 20;   // A8
@@ -59,78 +59,6 @@ int pwm1, pwm2, pwm3, pwm4;
 const float dt = 0.01;  // 100 Hz
 const unsigned long loopInterval = dt * 1000;
 
-// ======================
-// LED Timer
-// ======================
-IntervalTimer ledTimer;
-
-// =====================================================
-// LED Update ISR (50 Hz)
-// =====================================================
-void updateLEDs() {
-    if (!state_pin_high) {
-        strip.clear();
-        strip.show();
-        return;
-    }
-
-    static int last_state = -1;
-    static unsigned long flash_timer = 0;
-    static int phase = 0;
-
-    if (current_led_state != last_state) {
-        last_state = current_led_state;
-        flash_timer = millis();
-        phase = 0;
-    }
-
-    unsigned long elapsed = millis() - flash_timer;
-
-    if (current_led_state == 0) {
-        Serial.println("LED State 0");
-        if (phase != 99) {
-            strip.clear();
-            strip.show();
-            phase = 99;
-        }
-    }
-    else if (current_led_state == 1) {
-        Serial.println("LED State 1");
-        if (elapsed < 200 && phase == 0) {
-            strip.fill(strip.Color(0, 255, 0));
-            strip.show();
-            phase = 1;
-        }
-        else if (elapsed >= 200 && phase == 1) {
-            strip.clear();
-            strip.show();
-            phase = 2;
-        }
-    }
-    else if (current_led_state == 2) {
-        Serial.println("LED State 2");
-        if (elapsed < 200 && phase == 0) {
-            strip.fill(strip.Color(0, 255, 0));
-            strip.show();
-            phase = 1;
-        }
-        else if (elapsed < 350 && phase == 1) {
-            strip.clear();
-            strip.show();
-            phase = 2;
-        }
-        else if (elapsed < 550 && phase == 2) {
-            strip.fill(strip.Color(0, 255, 0));
-            strip.show();
-            phase = 3;
-        }
-        else if (elapsed >= 550 && phase == 3) {
-            strip.clear();
-            strip.show();
-            phase = 4;
-        }
-    }
-}
 
 // =====================================================
 // Write ESCs directly
@@ -196,12 +124,6 @@ void setup() {
     pump.attach(pumpPin);
 
     pinMode(statePin, INPUT);
-
-    strip.begin();
-    strip.setBrightness(BRIGHTNESS);
-    strip.show();
-
-    ledTimer.begin(updateLEDs, 20000); // 50 Hz
 
     Serial.println("Teensy 4.1 Direct ESC Control Ready");
 }
