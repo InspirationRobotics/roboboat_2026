@@ -2,7 +2,7 @@ from ivc_api import ASVClient
 import time
 
 # Use the static IP of your Server Jetson (e.g., 192.168.8.145)
-comms = ASVClient(server_ip='192.168.8.145')
+comms = ASVClient(server_ip='192.168.8.229')
 
 if comms.connect():
     print("--- Client Listening Mode Active ---")
