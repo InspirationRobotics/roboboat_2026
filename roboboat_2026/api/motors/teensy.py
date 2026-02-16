@@ -99,12 +99,17 @@ class TeensyNode(Node):
             m3 =  surge - sway + yaw
             m4 =  - surge - sway + yaw
 
+        pwm1 = 1500 + m1*300
+        pwm2 = 1500 + m2*400
+        pwm3 = 1500 + m3*400
+        pwm4 = 1500 + m4*400
+
         with self.lock:
             if self.activate_pump:
-                self.teensy.send_msg([m1,m2,m3,m4,1])
+                self.teensy.send_msg([pwm1,pwm2,pwm3,pwm4,1])
                 
             else:
-                self.teensy.send_msg([m1,m2,m3,m4,0])
+                self.teensy.send_msg([pwm1,pwm2,pwm3,pwm4,0])
                 
     def listener_callback(self, msg):
         """
