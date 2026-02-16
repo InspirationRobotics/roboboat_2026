@@ -24,8 +24,10 @@ hostname = platform.node()
 print(f"Hostname is: {hostname}")
 if hostname != "55502e621aa3":
     variables = load_json(f"{file_dir}/../config/barco.json")
+    boat = "barco polo"
 else:
     variables = load_json(f"{file_dir}/../config/crusader.json")
+    boat = "crusader"
     
     
 def findFromId(ids):

@@ -1,5 +1,5 @@
 import time
-from ivc_api import ASVServer, ASVClient
+from ivc.ivc_api import ASVServer, ASVClient
 
 # --- CONFIGURATION ---
 IS_LEADER = True  # Set to False on the second ASV
