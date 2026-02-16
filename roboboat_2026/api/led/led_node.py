@@ -57,7 +57,7 @@ class LEDNode(Node):
             '/led_state',
             self.request_callback,
             10
-        )   # to send in cli: ros2 topic pub /teensy/pwm std_msgs/msg/Int32 "{data:1}"
+        )   # to send in cli: ros2 topic pub /led_state std_msgs/msg/Int32 "{data: 1}" --once
 
         # see if the robot is in manual or autonomous
         self.state_sub = self.create_subscription(
