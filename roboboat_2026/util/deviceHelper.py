@@ -22,12 +22,16 @@ file_dir = os.path.dirname(os.path.abspath(__file__)) # Obtain the file director
 # Load the configuration of Barco Polo/Charlie
 hostname = platform.node()
 print(f"Hostname is: {hostname}")
-if hostname != "55502e621aa3":
+if hostname == "ucsd-roboboat":
     variables = load_json(f"{file_dir}/../config/barco.json")
     boat = "barco polo"
-else:
+elif hostname == "crusader-asv":
     variables = load_json(f"{file_dir}/../config/crusader.json")
     boat = "crusader"
+else:
+    print("ERROR! Not recognized device, treat as barco polo")
+    variables = load_json(f"{file_dir}/../config/barco.json")
+    boat = "barco polo"
     
     
 def findFromId(ids):
