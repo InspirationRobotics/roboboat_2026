@@ -9,15 +9,16 @@ from rclpy.node import Node
 from std_msgs.msg import Float32, Float32MultiArray, String
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from std_srvs.srv import Trigger
+from roboboat_2026.util import deviceHelper
 
 class RBClient(Node):
     def __init__(self):
         super().__init__('RBClient')
         # General Information
         self.team_id = "ASTA"
-        self.vehicle_ids = {"Barco_Polo":'S1',"Crusader":'S2'}
-        self.current_vehicle = "Barco_Polo"  # Track which vehicle is reporting
-        
+        self.vehicle_ids = {"barco polo":'S1',"crusader":'S2'}
+        self.current_vehicle = deviceHelper.boat  # Track which vehicle is reporting
+        self.get_logger().info(f"vehicle id is {self.vehicle_ids[self.current_vehicle]}")
         # Track basic robot information
         self.cur_state:str = "UNKNOWN"
         self.pos = None # lat,lon
@@ -35,6 +36,7 @@ class RBClient(Node):
         self.organizer = self.create_timer(1.0, self.organize_loop)  # 1Hz for heatbeat
         self.reporter  = self.create_timer(0.2, self.report_loop)  # 5Hz for all msgs
         self.seq_counter = 0  # Renamed for clarity
+        self.get_logger().info("RBClinet started")
 
     def __send(self, msg_body):
         """
@@ -186,6 +188,7 @@ class RBClient(Node):
         - "Docking,N,1"
         - "SoundSignal,ONE_BLAST,600,DOCKING"
         """
+        self.get_logger().info(f"sending: {line}")
         try:
             parts = line.strip().split(',')
             if len(parts) == 0:
