@@ -36,8 +36,6 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        livox_launch,
-        depthai_launch,
         gps_node,
         teensy_node,
         launcher_node,
