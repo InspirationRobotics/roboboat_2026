@@ -36,10 +36,13 @@ setup(
             'tf_node = roboboat_2026.test_pub:main',
             'gps_node = roboboat_2026.api.gps.gps_node:main',
             'teensy_node = roboboat_2026.api.motors.teensy:main',
+            'report_node = roboboat_2026.api.report.rb_client:main',
+            'ivc_node = roboboat_2026.api.ivc.ivc_node:main'
             'launcher_node = roboboat_2026.api.servos.ball_launcher:main',
             'lidar_costmap = roboboat_2026.mapping.lidar_costmap:main',
             'odom_node = roboboat_2026.navigation.odom_node:main',
             'ekf_node = roboboat_2026.navigation.ekf:main',
+            'ftp_node = roboboat_2026.missions.ftp:main',
         ],
     },
 )
