@@ -30,7 +30,7 @@ elif hostname == "crusader-asv":
     boat = "crusader"
 else:
     print("ERROR! Not recognized device, treat as barco polo")
-    variables = load_json(f"{file_dir}/../config/barco.json")
+    variables = load_json("/root/rb_ws/src/roboboat_2026/roboboat_2026/config/barco.json")
     boat = "barco polo"
     
     
