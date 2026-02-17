@@ -22,7 +22,7 @@ setup(
 
         # Action files
         ('share/' + package_name + '/action',
-         glob('roboboat_2026/action/*.action')),
+         glob('action/*.action')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
