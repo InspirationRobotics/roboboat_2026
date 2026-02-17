@@ -1,6 +1,7 @@
 from launch import LaunchDescription
 from launch.actions import TimerAction
 from launch_ros.actions import Node
+from launch.actions import SetEnvironmentVariable
 
 
 def generate_launch_description():
@@ -29,6 +30,10 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        SetEnvironmentVariable(
+            name='ROS_LOG_DIR',
+            value='/data/low_level_logs'
+        ),
         gps_node,
 
         TimerAction(

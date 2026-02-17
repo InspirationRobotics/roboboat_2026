@@ -4,6 +4,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import Node
 from launch.actions import TimerAction
+from launch.actions import SetEnvironmentVariable
 import os
 
 
@@ -26,6 +27,10 @@ def generate_launch_description():
 
 
     return LaunchDescription([
+    SetEnvironmentVariable(
+        name='ROS_LOG_DIR',
+        value='/data/comm_logs'
+    ),
         ivc_node,
 
         TimerAction(
