@@ -37,7 +37,7 @@ setup(
             'gps_node = roboboat_2026.api.gps.gps_node:main',
             'teensy_node = roboboat_2026.api.motors.teensy:main',
             'report_node = roboboat_2026.api.report.rb_client:main',
-            'ivc_node = roboboat_2026.api.ivc.ivc_node:main'
+            'ivc_node = roboboat_2026.api.ivc.ivc_node:main',
             'launcher_node = roboboat_2026.api.servos.ball_launcher_node:main',
             'led_node = roboboat_2026.api.led.led_node:main',
             'lidar_costmap = roboboat_2026.mapping.lidar_costmap:main',
