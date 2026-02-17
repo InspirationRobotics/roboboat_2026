@@ -255,7 +255,7 @@ class RBClient(Node):
             obj_id = int(parts[5].strip())
             task = parts[6].strip()
             
-            from roboboat_2026.report.report_body import ObjectDetectedMsg
+            from roboboat_2026.api.report.report_body import ObjectDetectedMsg
             msg = ObjectDetectedMsg(obj_type, color, (lat, lon), obj_id, task)
             
             if msg is not None:
@@ -285,7 +285,7 @@ class RBClient(Node):
             lon = float(parts[3].strip())
             delivery_type = parts[4].strip()
             
-            from roboboat_2026.report.report_body import ObjectDeliveryMsg
+            from roboboat_2026.api.report.report_body import ObjectDeliveryMsg
             msg = ObjectDeliveryMsg(color, (lat, lon), delivery_type)
             
             if msg is not None:
@@ -313,7 +313,7 @@ class RBClient(Node):
             dock = parts[1].strip()
             slip = parts[2].strip()
             
-            from roboboat_2026.report.report_body import DockingMsg
+            from roboboat_2026.api.report.report_body import DockingMsg
             msg = DockingMsg(dock, slip)
             
             if msg is not None:
@@ -340,7 +340,7 @@ class RBClient(Node):
             frequency = int(parts[2].strip())
             task = parts[3].strip()
             
-            from roboboat_2026.report.report_body import SoundSignalMsg
+            from roboboat_2026.api.report.report_body import SoundSignalMsg
             msg = SoundSignalMsg(signal_type, frequency, task)
             
             if msg is not None:
