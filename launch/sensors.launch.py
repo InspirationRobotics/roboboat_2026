@@ -45,10 +45,25 @@ def generate_launch_description():
         output='screen'
     )
 
+    # launcher node
+    launcher_node = Node(
+        package='roboboat_2026',
+        executable='launcher_node',
+        output='screen'
+    )
+
+    # led node
+    led_node = Node(
+        package='roboboat_2026',
+        executable='led_node',
+        output='screen'
+    )
 
     return LaunchDescription([
         livox_launch,
         depthai_launch,
         gps_node,
-        teensy_node
+        teensy_node,
+        launcher_node,
+        led_node
     ])

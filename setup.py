@@ -39,6 +39,7 @@ setup(
             'report_node = roboboat_2026.api.report.rb_client:main',
             'ivc_node = roboboat_2026.api.ivc.ivc_node:main'
             'launcher_node = roboboat_2026.api.servos.ball_launcher:main',
+            'led_node = roboboat_2026.api.led.led_node:main',
             'lidar_costmap = roboboat_2026.mapping.lidar_costmap:main',
             'odom_node = roboboat_2026.navigation.odom_node:main',
             'ekf_node = roboboat_2026.navigation.ekf:main',

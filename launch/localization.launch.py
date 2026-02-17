@@ -19,7 +19,12 @@ def generate_launch_description():
             package='roboboat_2026',
             name='ekf_node',
             executable='ekf_node',
-        )
+        ),
+        Node(
+            package='roboboat_2026',
+            name='ftp_node',
+            executable='ftp_node',
+        ),
 
 
     ])
