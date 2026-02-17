@@ -23,10 +23,10 @@ file_dir = os.path.dirname(os.path.abspath(__file__)) # Obtain the file director
 hostname = platform.node()
 print(f"Hostname is: {hostname}")
 if hostname == "ucsd-roboboat":
-    variables = load_json(f"{file_dir}/../config/barco.json")
+    variables = load_json("/root/rb_ws/src/roboboat_2026/roboboat_2026/config/barco.json")
     boat = "barco polo"
 elif hostname == "crusader-asv":
-    variables = load_json(f"{file_dir}/../config/crusader.json")
+    variables = load_json("/root/rb_ws/src/roboboat_2026/roboboat_2026/config/crusader.json")
     boat = "crusader"
 else:
     print("ERROR! Not recognized device, treat as barco polo")
