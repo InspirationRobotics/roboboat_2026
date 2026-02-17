@@ -7,31 +7,6 @@ import os
 
 
 def generate_launch_description():
-
-    # Livox MID360 RViz launch
-    livox_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory('livox_ros_driver2'),
-                'launch_ROS2',
-                'rviz_MID360_launch.py'
-            )
-        )
-    )
-
-
-    # DepthAI camera launch
-    depthai_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory('depthai_ros_driver'),
-                'launch',
-                'camera.launch.py'
-            )
-        )
-    )
-
-
     # gps node
     gps_node = Node(
         package='roboboat_2026',
