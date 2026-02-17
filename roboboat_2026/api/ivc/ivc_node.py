@@ -2,7 +2,7 @@ import time
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32, Float32MultiArray, String, Int32
-from roboboat_2026.ivc.ivc_api import ASVServer, ASVClient
+from roboboat_2026.api.ivc.ivc_api import ASVServer, ASVClient
 from roboboat_2026.util import deviceHelper
 from threading import Thread, Lock
 
