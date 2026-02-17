@@ -17,9 +17,14 @@ def generate_launch_description():
         ),
         Node(
             package='roboboat_2026',
-            name='odom_node',
-            executable='odom_node',
-        )
+            name='ekf_node',
+            executable='ekf_node',
+        ),
+        Node(
+            package='roboboat_2026',
+            name='ftp_node',
+            executable='ftp_node',
+        ),
 
 
     ])

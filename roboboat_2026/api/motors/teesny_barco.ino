@@ -17,6 +17,7 @@ const int escPin2 = 37;
 const int escPin3 = 36;
 const int escPin4 = 35;
 const int pumpPin = 2;
+const int statePin = A9;
 const int minPulse = 1100;
 const int maxPulse = 1900;
 
@@ -41,6 +42,7 @@ void setup(){
     aft_port.attach(escPin3);
     aft_starboard.attach(escPin2);
     pump.attach(pumpPin);
+    pinMode(statePin, INPUT);
 
     Serial.println("Teensy started Teensy Light");
 }
@@ -89,7 +91,7 @@ void parseSerial(String data){
     int pump_reading        = data.substring(c3 + 1, c4).toFloat();
 
     if(pump_reading==1){
-        Serial.println("Water pump activated");
+        // Serial.println("Water pump activated");
         activate_pump = true;
     }else{
         activate_pump = false;
@@ -121,6 +123,13 @@ void loop(){
         pump.writeMicroseconds(1800);
     }else{
         pump.writeMicroseconds(1500);
+    }
+    
+    int statePWM = analogRead(statePin);
+    if(statePWM>1700){
+        Serial.println(1);
+    }else{
+        Serial.println(0);
     }
 
     unsigned long elapsed = millis() - currentTime;

@@ -5,6 +5,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from nav_msgs.msg import Odometry
+from rclpy.parameter import Parameter
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -110,6 +111,7 @@ class GPSFusion(Node):
         self.pose_pub = self.create_publisher(PoseStamped, '/fused/pose', 10)
         self.velocity_pub = self.create_publisher(TwistStamped, '/fused/velocity', 10)
         self.odom_pub = self.create_publisher(Odometry, '/fused/odometry', 10)
+        self.declare_parameter('origin', Parameter.Type.DOUBLE_ARRAY)
         
         # Reference GPS coordinates (set on first GPS message)
         self.gps_origin = None
@@ -128,6 +130,14 @@ class GPSFusion(Node):
         """Convert GPS coordinates to local ENU frame (2D)"""
         if self.gps_origin is None:
             self.gps_origin = (lat, lon)
+            self.get_logger().info(f"GPS origin at lat -> {lat}, long -> {lon}")
+            self.set_parameters([
+                rclpy.parameter.Parameter(
+                    'origin',
+                    rclpy.Parameter.Type.DOUBLE_ARRAY,
+                    [lat, lon]
+                )
+            ])
             return np.array([0.0, 0.0])
         
         lat0, lon0 = self.gps_origin
@@ -179,9 +189,7 @@ class GPSFusion(Node):
         
         # Convert GPS to local coordinates
         position = self.gps_to_local(lat, lon)
-        
-        if self.gps_origin is None:
-            self.get_logger().info(f'GPS origin set at: {lat:.6f}, {lon:.6f}')
+            
         
         # Convert heading to yaw
         yaw = self.heading_to_yaw(heading)

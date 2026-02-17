@@ -22,7 +22,16 @@ file_dir = os.path.dirname(os.path.abspath(__file__)) # Obtain the file director
 # Load the configuration of Barco Polo/Charlie
 hostname = platform.node()
 print(f"Hostname is: {hostname}")
-variables = load_json(f"{file_dir}/../config/roboboat.json")
+if hostname == "ucsd-roboboat":
+    variables = load_json("/root/rb_ws/src/roboboat_2026/roboboat_2026/config/barco.json")
+    boat = "barco polo"
+elif hostname == "crusader-asv":
+    variables = load_json("/root/rb_ws/src/roboboat_2026/roboboat_2026/config/crusader.json")
+    boat = "crusader"
+else:
+    print("ERROR! Not recognized device, treat as barco polo")
+    variables = load_json("/root/rb_ws/src/roboboat_2026/roboboat_2026/config/barco.json")
+    boat = "barco polo"
     
     
 def findFromId(ids):
@@ -104,7 +113,7 @@ def dataFromConfig(name):
         raise Exception("Invalid Name")
 
     # Serial devices with a 'port' in the JSON
-    if name in ("teensy", "ball_launcher", "gps"):
+    if name in ("teensy", "ball_launcher", "gps", "led"):
         platform_path = device_cfg.get("port")
         if platform_path is None:
             print("id not found")
@@ -124,6 +133,7 @@ def dataFromConfig(name):
     # USB webcam: return its platform 'port' (likely consumed by findCam or similar)
     if name == "web_cam":
         return device_cfg.get("port")
+    
 
     # Fallback: return raw dict
     return device_cfg
