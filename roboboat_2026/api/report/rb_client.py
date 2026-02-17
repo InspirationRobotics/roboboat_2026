@@ -45,7 +45,7 @@ class RBClient(Node):
         # Create Report with proper fields
         report = Report(
             team_id=self.team_id,
-            vehicle_id=self.vehicle_ids.get(self.current_vehicle, 'S1'),
+            vehicle_id=self.vehicle_ids[self.current_vehicle],
             seq=self.seq_counter
         )
         

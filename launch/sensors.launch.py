@@ -13,11 +13,12 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             os.path.join(
                 get_package_share_directory('livox_ros_driver2'),
-                'launch',
+                'launch_ROS2',
                 'rviz_MID360_launch.py'
             )
         )
     )
+
 
     # DepthAI camera launch
     depthai_launch = IncludeLaunchDescription(
