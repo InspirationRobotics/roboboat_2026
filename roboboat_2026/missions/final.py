@@ -26,6 +26,9 @@ class FinalMission(Node):
 
         rclpy.spin(self)
 
+        # report pub
+        self.report_pub = self.create_publisher(String, '/report',10)
+
     def trigger_pump(self):
         request = Trigger.Request()
         self.future = self.water_pump.call_async(request)
@@ -40,12 +43,18 @@ class FinalMission(Node):
     def state_cb(self,msg):
         self.wp_finished = msg.data
     
+    def report_wrap(self, msg):
+        report_msg = String()
+        report_msg.data = msg
+        self.report_pub.publish(report_msg)
+
     def run(self):
         
-        
         # Entry & Exit Gate mission
+        self.report_wrap("GatePass,ENTRY,32.112345,-21.12345")
         self.wp_finished = False
         self.send_waypoints(path="/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json")
+        self.report_wrap("GatePass,EXIT,32.112345,-21.12345")
 
         while not self.wp_finished:
             print("I;m sleeping")

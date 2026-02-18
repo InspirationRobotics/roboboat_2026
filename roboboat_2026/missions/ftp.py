@@ -12,7 +12,7 @@ from std_srvs.srv import Trigger
 from std_srvs.srv import SetBool
 
 from roboboat_2026.util.helper import heading_error, get_heading_from_coords
-
+from roboboat_2026.util import deviceHelper
 
 class SimpleControl:
     def __init__(self):
@@ -47,9 +47,16 @@ class WaypointFollowerService(Node):
         self.heading = None
         self.active = False
         self.reached_all = False
+        self.config = deviceHelper.variables
+        
 
-        self.create_subscription(PoseStamped, '/fused/pose', self.pose_cb, 1)
-        self.create_subscription(Float32MultiArray, '/GPS', self.gps_cb, 1)
+        self.create_subscription(PoseStamped, '/fused/pose', self.pose_cb, 10)
+        self.create_subscription(Float32MultiArray, '/GPS', self.gps_cb, 10)
+        self.create_subscription(String, '/harbor_alert',self.alert_cb, 10)
+
+        # flags
+        self.alert_detected = False
+        self.alert_finished = False
 
         self.pwm_pub = self.create_publisher(Float32MultiArray, '/teensy/pwm', 10)
         self.task_pub = self.create_publisher(String, '/cur_task', 10)
@@ -103,6 +110,22 @@ class WaypointFollowerService(Node):
 
     def gps_cb(self, msg):
         self.heading = msg.data[2]
+
+    def alert_cb(self, msg):
+        self.alert_detected = True
+        line = msg.data
+        lines = line.strip().split(',')
+        if lines[0]=="0":
+            harbor_pos = self.config.get('harbor_pos').get("one_blast")
+        elif lines[0] == "1":
+            harbor_pos = self.config.get('harbor_pos').get("one_blast")
+        elif lines[0] == "2":
+            harbor_pos = self.config.get('harbor_pos').get("two_blast")
+        else:
+            self.get_logger().warn("INVALID ALERT MSG")
+            return
+        print(harbor_pos)
+        # self.active_goal = []
 
     def stop_vehicle(self):
         msg = Float32MultiArray()
@@ -178,6 +201,12 @@ class WaypointFollowerService(Node):
 
         # Goal reached
         if distance < 0.5:
+            if self.alert_detected:
+                pwm = Float32MultiArray()
+                pwm.data = [0.0, 0.0, 0.0]
+                self.pwm_pub.publish(pwm)
+                time.sleep(10) # sleep for 10s show that we stay at harbor alert
+
             self.get_logger().info(f"Reached waypoint x={x}, y={y}")
             if self.queue:
                 self.active_goal = self.queue.pop(0)
