@@ -41,7 +41,7 @@ import cv2
 from sensor_msgs.msg import Image, CameraInfo
 from vision_msgs.msg import Detection3DArray, Detection3D, BoundingBox3D
 from geometry_msgs.msg import Pose, Point, Quaternion
-from cv_bridge import CvBridge
+# from cv_bridge import CvBridge
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +129,7 @@ class BBox3DEstimator(Node):
         self._sync_slop    = self.get_parameter('sync_slop_sec').value
         self._output_frame = self.get_parameter('output_frame').value
 
-        self._bridge = CvBridge()
+        # self._bridge = CvBridge()
 
         # ---- camera info (latched once) ------------------------------------
         self._rgb_info    = None
@@ -206,6 +206,9 @@ class BBox3DEstimator(Node):
             return
 
         if not dets_msg.detections:
+            self.get_logger().warn(
+                'No spatial detection received — skipping frame',
+                throttle_duration_sec=2.0)
             return
 
         # ---- decode depth image -------------------------------------------
@@ -227,6 +230,7 @@ class BBox3DEstimator(Node):
 
         depth_h, depth_w = depth_cv.shape[:2]
 
+        print("Reached 233")
         # ---- intrinsics ---------------------------------------------------
         # Stereo (depth) intrinsics for back-projection
         sfx, sfy, scx, scy = intrinsics_from_camera_info(self._stereo_info)
@@ -243,6 +247,8 @@ class BBox3DEstimator(Node):
                                    or depth_msg.header.frame_id)
 
         for det in dets_msg.detections:
+            self.get_logger().info(
+                'processing detections')
             raw_u = det.bbox.center.position.x
             raw_v = det.bbox.center.position.y
 
@@ -281,7 +287,7 @@ class BBox3DEstimator(Node):
             X = (u_d - scx) * depth_m / sfx
             Y = (v_d - scy) * depth_m / sfy
             Z = depth_m
-
+            print(Z)
             # ---- build Detection3D ----------------------------------------
             out_det = Detection3D()
             out_det.header = out_msg.header
