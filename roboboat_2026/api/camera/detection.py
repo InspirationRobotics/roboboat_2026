@@ -99,7 +99,10 @@ def bbox_center_px(detection: Detection3D, rgb_fx: float, rgb_fy: float,
     # caller decide (see node parameter `bbox_coords`).
     return cx3d, cy3d
 
-
+def imgmsg_to_depth(msg: Image) -> np.ndarray:
+    """Convert 16UC1 or 32FC1 Image msg to numpy without cv_bridge."""
+    dtype = np.uint16 if msg.encoding == '16UC1' else np.float32
+    return np.frombuffer(msg.data, dtype=dtype).reshape(msg.height, msg.width)
 # ---------------------------------------------------------------------------
 # Node
 # ---------------------------------------------------------------------------
@@ -208,7 +211,7 @@ class BBox3DEstimator(Node):
         # ---- decode depth image -------------------------------------------
         try:
             # 16UC1: uint16 millimetres
-            depth_cv = self._bridge.imgmsg_to_cv2(depth_msg, desired_encoding='passthrough')
+            depth_cv = imgmsg_to_depth(depth_msg)
         except Exception as e:
             self.get_logger().error(f'cv_bridge depth error: {e}')
             return
