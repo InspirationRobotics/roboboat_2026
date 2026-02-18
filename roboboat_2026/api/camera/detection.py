@@ -3,45 +3,42 @@
 bbox_3d_estimator.py
 --------------------
 ROS2 node that fuses:
-  - /oak/stereo/image_raw   (sensor_msgs/Image, 16UC1 depth in mm, aligned to RGB)
-  - /oak/rgb/image_raw      (sensor_msgs/Image, used for frame_id / timing)
+  - /oak/stereo/image_raw      (sensor_msgs/Image, 16UC1 depth in mm, aligned to RGB)
   - /oak/nn/spatial_detections (vision_msgs/Detection3DArray, bbox only used)
 
-  + /oak/stereo/camera_info (sensor_msgs/CameraInfo)
-  + /oak/rgb/camera_info    (sensor_msgs/CameraInfo)
+  + /oak/stereo/camera_info    (sensor_msgs/CameraInfo)
+  + /oak/rgb/camera_info       (sensor_msgs/CameraInfo)
 
 Outputs:
-  - /detections_3d          (vision_msgs/Detection3DArray, pose filled in)
+  - /detections_3d             (vision_msgs/Detection3DArray, pose filled in)
 
-Pipeline per detection
-----------------------
-1. Extract bbox center (u, v) in RGB pixel space from the 2D bounding box
-   stored inside each Detection3D (uses BoundingBox2D if present, otherwise
-   falls back to the bbox3d center projected via rgb camera_info).
-2. Sample a small ROI around (u, v) in the aligned depth image.
-3. Take the median of valid (non-zero, non-NaN) depth pixels in that ROI.
-4. Back-project using stereo camera_info intrinsics:
-       Z = depth_m
-       X = (u - cx) * Z / fx
-       Y = (v - cy) * Z / fy
-5. Publish a Detection3DArray with pose.position filled and
-   pose.orientation set to identity.
+Pipeline
+--------
+- Depth image and camera infos are cached on arrival.
+- On each detection message, the latest cached depth is used immediately —
+  no synchronisation needed.
+- For each bbox:
+    1. Extract center (u, v) in RGB pixel space.
+    2. Scale (u, v) to depth image resolution.
+    3. Sample median depth over a small ROI around (u, v).
+    4. Back-project to 3-D:
+         Z = depth_m
+         X = (u - cx) * Z / fx
+         Y = (v - cy) * Z / fy
+    5. Publish Detection3DArray with pose filled in.
 
-Coordinate frame: stereo/depth optical frame (right-hand, Z forward).
+Coordinate frame: stereo/depth optical frame (Z forward, right-hand).
 """
 
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 
-import message_filters
 import numpy as np
-import cv2
 
 from sensor_msgs.msg import Image, CameraInfo
-from vision_msgs.msg import Detection3DArray, Detection3D, BoundingBox3D
-from geometry_msgs.msg import Pose, Point, Quaternion
-# from cv_bridge import CvBridge
+from vision_msgs.msg import Detection3DArray, Detection3D
+from geometry_msgs.msg import Quaternion
 
 
 # ---------------------------------------------------------------------------
@@ -49,23 +46,35 @@ from geometry_msgs.msg import Pose, Point, Quaternion
 # ---------------------------------------------------------------------------
 
 def intrinsics_from_camera_info(info: CameraInfo):
-    """Return (fx, fy, cx, cy) from a CameraInfo message."""
+    """Return (fx, fy, cx, cy) from a CameraInfo K matrix."""
     K = info.k  # row-major 3x3
-    return K[0], K[4], K[2], K[5]  # fx, fy, cx, cy
+    return K[0], K[4], K[2], K[5]
+
+
+def imgmsg_to_depth(msg: Image) -> np.ndarray:
+    """Convert 16UC1 or 32FC1 Image msg to a numpy array without cv_bridge."""
+    if msg.encoding == '16UC1':
+        dtype = np.uint16
+    elif msg.encoding == '32FC1':
+        dtype = np.float32
+    else:
+        raise ValueError(f'Unsupported depth encoding: {msg.encoding}')
+    return np.frombuffer(msg.data, dtype=dtype).reshape(msg.height, msg.width)
 
 
 def sample_depth_roi(depth_img: np.ndarray, u: float, v: float,
                      roi_px: int = 10) -> float:
     """
-    Sample a square ROI of half-size roi_px around (u, v) in a depth image
-    (uint16, millimetres).  Returns the median of valid pixels in metres,
-    or NaN if no valid pixels exist.
+    Return the median valid depth (metres) in a square ROI of half-size
+    roi_px centred on (u, v).  Returns NaN if no valid pixels exist.
+
+    Expects uint16 (millimetres) or float32 (metres already).
     """
     h, w = depth_img.shape[:2]
-    u, v = int(round(u)), int(round(v))
+    ui, vi = int(round(u)), int(round(v))
 
-    u0, u1 = max(0, u - roi_px), min(w, u + roi_px + 1)
-    v0, v1 = max(0, v - roi_px), min(h, v + roi_px + 1)
+    u0, u1 = max(0, ui - roi_px), min(w, ui + roi_px + 1)
+    v0, v1 = max(0, vi - roi_px), min(h, vi + roi_px + 1)
 
     roi = depth_img[v0:v1, u0:u1].astype(np.float32)
     valid = roi[(roi > 0) & np.isfinite(roi)]
@@ -73,36 +82,15 @@ def sample_depth_roi(depth_img: np.ndarray, u: float, v: float,
     if valid.size == 0:
         return float('nan')
 
-    return float(np.median(valid)) / 1000.0  # mm → m
+    median = float(np.median(valid))
+
+    # Convert mm -> m for uint16 source
+    if depth_img.dtype == np.uint16:
+        median /= 1000.0
+
+    return median
 
 
-def bbox_center_px(detection: Detection3D, rgb_fx: float, rgb_fy: float,
-                   rgb_cx: float, rgb_cy: float):
-    """
-    Return (u, v) pixel center of the detection in the RGB image.
-
-    OAK-D spatial detections store the normalised 2-D bounding box in
-    detection.bbox (BoundingBox3D).  The x/y of bbox.center.position are
-    the *normalised* [0..1] coordinates when coming from the MyriadX NN,
-    but some pipelines write absolute pixel values — we handle both by
-    checking whether the values are ≤ 1.0 (normalised) or > 1.0 (pixels).
-
-    Fall-back: project the 3-D bbox centre with rgb intrinsics.
-    """
-    bbox: BoundingBox3D = detection.bbox
-    cx3d = bbox.center.position.x
-    cy3d = bbox.center.position.y
-
-    # Heuristic: if both values are in (0, 1] treat as normalised
-    # We need the image size for that — caller must pass it, or we rely on
-    # camera_info width/height.  Here we return raw values and let the
-    # caller decide (see node parameter `bbox_coords`).
-    return cx3d, cy3d
-
-def imgmsg_to_depth(msg: Image) -> np.ndarray:
-    """Convert 16UC1 or 32FC1 Image msg to numpy without cv_bridge."""
-    dtype = np.uint16 if msg.encoding == '16UC1' else np.float32
-    return np.frombuffer(msg.data, dtype=dtype).reshape(msg.height, msg.width)
 # ---------------------------------------------------------------------------
 # Node
 # ---------------------------------------------------------------------------
@@ -116,204 +104,173 @@ class BBox3DEstimator(Node):
         self.declare_parameter('roi_half_px', 10)
         self.declare_parameter('min_depth_m', 0.1)
         self.declare_parameter('max_depth_m', 15.0)
-        # 'normalised' | 'pixels'
-        # OAK-D DepthAI typically gives normalised [0,1] bbox coords.
-        self.declare_parameter('bbox_coords', 'pixels')
-        self.declare_parameter('sync_slop_sec', 0.05)
-        self.declare_parameter('output_frame', '')  # '' = use depth frame
+        self.declare_parameter('bbox_coords', 'pixels')   # 'pixels' | 'normalised'
+        self.declare_parameter('output_frame', '')         # '' = use depth frame
 
         self._roi_px       = self.get_parameter('roi_half_px').value
         self._min_depth    = self.get_parameter('min_depth_m').value
         self._max_depth    = self.get_parameter('max_depth_m').value
         self._bbox_coords  = self.get_parameter('bbox_coords').value
-        self._sync_slop    = self.get_parameter('sync_slop_sec').value
         self._output_frame = self.get_parameter('output_frame').value
 
-        # self._bridge = CvBridge()
+        # ---- state ---------------------------------------------------------
+        self._latest_depth: Image | None = None
+        self._rgb_info:     CameraInfo | None = None
+        self._stereo_info:  CameraInfo | None = None
 
-        # ---- camera info (latched once) ------------------------------------
-        self._rgb_info    = None
-        self._stereo_info = None
-
-        best_effort_qos = QoSProfile(
+        # ---- QoS -----------------------------------------------------------
+        be_qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             history=HistoryPolicy.KEEP_LAST,
             depth=1,
         )
 
-        self._sub_rgb_info = self.create_subscription(
+        # ---- subscribers ---------------------------------------------------
+        self.create_subscription(
             CameraInfo, '/oak/rgb/camera_info',
-            self._cb_rgb_info, qos_profile=best_effort_qos)
+            self._cb_rgb_info, qos_profile=be_qos)
 
-        self._sub_stereo_info = self.create_subscription(
+        self.create_subscription(
             CameraInfo, '/oak/stereo/camera_info',
-            self._cb_stereo_info, qos_profile=best_effort_qos)
+            self._cb_stereo_info, qos_profile=be_qos)
 
-        # ---- synchronised subscribers --------------------------------------
-        self._sub_depth = message_filters.Subscriber(
-            self, Image, '/oak/stereo/image_raw',
-            qos_profile=best_effort_qos)
+        # Cache latest depth — no processing here
+        self.create_subscription(
+            Image, '/oak/stereo/image_raw',
+            self._cb_depth, qos_profile=be_qos)
 
-        self._sub_rgb = message_filters.Subscriber(
-            self, Image, '/oak/rgb/image_raw',
-            qos_profile=best_effort_qos)
-
-        self._sub_dets = message_filters.Subscriber(
-            self, Detection3DArray, '/oak/nn/spatial_detections',
-            qos_profile=best_effort_qos)
-
-        slop = self._sync_slop
-        self._sync = message_filters.ApproximateTimeSynchronizer(
-            [self._sub_depth, self._sub_rgb, self._sub_dets],
-            queue_size=10,
-            slop=slop,
-        )
-        self._sync.registerCallback(self._cb_sync)
+        # All work happens here
+        self.create_subscription(
+            Detection3DArray, '/oak/nn/spatial_detections',
+            self._cb_detections, qos_profile=be_qos)
 
         # ---- publisher -----------------------------------------------------
         self._pub = self.create_publisher(
             Detection3DArray, '/detections_3d', 10)
 
-        self.get_logger().info('bbox_3d_estimator ready — waiting for camera_info …')
+        self.get_logger().info('bbox_3d_estimator ready.')
 
     # -----------------------------------------------------------------------
-    # Camera info callbacks (latch once)
+    # Cache callbacks
     # -----------------------------------------------------------------------
 
     def _cb_rgb_info(self, msg: CameraInfo):
         if self._rgb_info is None:
             self._rgb_info = msg
             self.get_logger().info(
-                f'RGB camera_info received: {msg.width}x{msg.height}')
+                f'RGB camera_info latched: {msg.width}x{msg.height}')
 
     def _cb_stereo_info(self, msg: CameraInfo):
         if self._stereo_info is None:
             self._stereo_info = msg
             self.get_logger().info(
-                f'Stereo camera_info received: {msg.width}x{msg.height}')
+                f'Stereo camera_info latched: {msg.width}x{msg.height}')
+
+    def _cb_depth(self, msg: Image):
+        self._latest_depth = msg
 
     # -----------------------------------------------------------------------
-    # Main synchronised callback
+    # Detection callback — all the work happens here
     # -----------------------------------------------------------------------
 
-    def _cb_sync(self, depth_msg: Image, rgb_msg: Image,
-                 dets_msg: Detection3DArray):
+    def _cb_detections(self, dets_msg: Detection3DArray):
+
+        # ---- guards --------------------------------------------------------
+        if self._latest_depth is None:
+            self.get_logger().warn('No depth image yet — skipping.',
+                                   throttle_duration_sec=2.0)
+            return
 
         if self._rgb_info is None or self._stereo_info is None:
-            self.get_logger().warn(
-                'camera_info not yet received — skipping frame',
-                throttle_duration_sec=2.0)
+            self.get_logger().warn('camera_info not yet received — skipping.',
+                                   throttle_duration_sec=2.0)
             return
 
         if not dets_msg.detections:
-            self.get_logger().warn(
-                'No spatial detection received — skipping frame',
-                throttle_duration_sec=2.0)
             return
 
-        # ---- decode depth image -------------------------------------------
+        # ---- decode depth --------------------------------------------------
         try:
-            # 16UC1: uint16 millimetres
-            depth_cv = imgmsg_to_depth(depth_msg)
-        except Exception as e:
-            self.get_logger().error(f'cv_bridge depth error: {e}')
+            depth_cv = imgmsg_to_depth(self._latest_depth)
+        except ValueError as e:
+            self.get_logger().error(str(e))
             return
-
-        if depth_cv.dtype != np.uint16:
-            # Some pipelines publish 32FC1 (metres already)
-            if depth_cv.dtype == np.float32:
-                depth_cv = (depth_cv * 1000).astype(np.uint16)
-            else:
-                self.get_logger().error(
-                    f'Unexpected depth dtype: {depth_cv.dtype}')
-                return
 
         depth_h, depth_w = depth_cv.shape[:2]
 
-        print("Reached 233")
-        # ---- intrinsics ---------------------------------------------------
-        # Stereo (depth) intrinsics for back-projection
+        # ---- intrinsics ----------------------------------------------------
         sfx, sfy, scx, scy = intrinsics_from_camera_info(self._stereo_info)
-        # RGB intrinsics for normalised→pixel conversion
-        rfx, rfy, rcx, rcy = intrinsics_from_camera_info(self._rgb_info)
         rgb_w = self._rgb_info.width
         rgb_h = self._rgb_info.height
 
-        # ---- build output message -----------------------------------------
+        # Scaling factors: RGB pixel space -> depth image space
+        scale_x = depth_w / rgb_w
+        scale_y = depth_h / rgb_h
+
+        # ---- build output message ------------------------------------------
         out_msg = Detection3DArray()
         out_msg.header.stamp    = dets_msg.header.stamp
         out_msg.header.frame_id = (self._output_frame
                                    or self._stereo_info.header.frame_id
-                                   or depth_msg.header.frame_id)
+                                   or self._latest_depth.header.frame_id)
 
+        # ---- process each detection ----------------------------------------
         for det in dets_msg.detections:
-            self.get_logger().info(
-                'processing detections')
+
             raw_u = det.bbox.center.position.x
             raw_v = det.bbox.center.position.y
 
-            # Convert bbox centre to depth-image pixel coords
+            # Convert to RGB pixel space if needed
             if self._bbox_coords == 'normalised':
-                # OAK-D NN outputs are normalised [0, 1]
                 u_rgb = raw_u * rgb_w
                 v_rgb = raw_v * rgb_h
             else:
                 u_rgb = raw_u
                 v_rgb = raw_v
 
-            # Scale from RGB resolution to depth resolution
-            # (they are aligned but may differ in resolution)
-            scale_x = depth_w / rgb_w
-            scale_y = depth_h / rgb_h
+            # Scale to depth image space
             u_d = u_rgb * scale_x
             v_d = v_rgb * scale_y
 
-            # ---- sample depth ---------------------------------------------
+            # Sample depth in ROI around projected center
             depth_m = sample_depth_roi(depth_cv, u_d, v_d, self._roi_px)
 
             if np.isnan(depth_m):
-                self.get_logger().debug(
-                    f'No valid depth for detection at ({u_d:.1f},{v_d:.1f})')
+                self.get_logger().warn(
+                    f'No valid depth at ({u_d:.1f}, {v_d:.1f}) — skipping.',
+                    throttle_duration_sec=1.0)
                 continue
 
             if not (self._min_depth <= depth_m <= self._max_depth):
                 self.get_logger().debug(
-                    f'Depth {depth_m:.3f}m out of range — skipping')
+                    f'Depth {depth_m:.3f} m out of range — skipping.')
                 continue
 
-            # ---- back-project to 3-D (stereo optical frame) ---------------
-            # Use stereo intrinsics (depth is in stereo frame)
-            # u_d, v_d are in depth pixel space; re-map to stereo principal pt
+            # Back-project (u, v, Z) -> (X, Y, Z) in stereo optical frame
             X = (u_d - scx) * depth_m / sfx
             Y = (v_d - scy) * depth_m / sfy
             Z = depth_m
-            print(Z)
-            # ---- build Detection3D ----------------------------------------
+
+            # Build output detection (copy class + bbox size from input)
             out_det = Detection3D()
-            out_det.header = out_msg.header
+            out_det.header  = out_msg.header
+            out_det.results = det.results
+            out_det.bbox    = det.bbox
 
-            # Copy results, bbox size, and class info from input
-            out_det.results    = det.results
-            out_det.bbox       = det.bbox
-
-            # Fill in the estimated 3-D pose
-            out_det.bbox.center.position.x = X
-            out_det.bbox.center.position.y = Y
-            out_det.bbox.center.position.z = Z
-            # Identity orientation (no rotation estimated)
+            out_det.bbox.center.position.x  = X
+            out_det.bbox.center.position.y  = Y
+            out_det.bbox.center.position.z  = Z
             out_det.bbox.center.orientation = Quaternion(
                 x=0.0, y=0.0, z=0.0, w=1.0)
 
             out_msg.detections.append(out_det)
 
-            self.get_logger().debug(
-                f'Detection → X={X:.3f} Y={Y:.3f} Z={Z:.3f} m '
-                f'(u={u_d:.1f} v={v_d:.1f})')
+            self.get_logger().info(
+                f'Detection -> X={X:.3f}  Y={Y:.3f}  Z={Z:.3f} m  '
+                f'(depth px: {u_d:.1f}, {v_d:.1f})')
 
         if out_msg.detections:
             self._pub.publish(out_msg)
-            self.get_logger().debug(
-                f'Published {len(out_msg.detections)} detection(s)')
 
 
 # ---------------------------------------------------------------------------
