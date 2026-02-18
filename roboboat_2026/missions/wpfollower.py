@@ -8,8 +8,6 @@ from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray, String, Bool
 from geometry_msgs.msg import PoseStamped
 from rcl_interfaces.srv import GetParameters
-from std_srvs.srv import Trigger
-from std_srvs.srv import SetBool
 
 from roboboat_2026.util.helper import heading_error, get_heading_from_coords
 
@@ -40,13 +38,13 @@ class SimpleControl:
 
 class WaypointFollowerService(Node):
     def __init__(self):
-        super().__init__('waypoint_follower_service')
+        super().__init__('waypoint_follower')
 
         self.controller = SimpleControl()
         self.position = None
         self.heading = None
         self.active = False
-        self.reached_all = False
+        self.reached = False
 
         self.create_subscription(PoseStamped, '/fused/pose', self.pose_cb, 1)
         self.create_subscription(Float32MultiArray, '/GPS', self.gps_cb, 1)
@@ -83,21 +81,26 @@ class WaypointFollowerService(Node):
         # Since we need string input, I'll demonstrate with a simple approach using a String subscriber
         # to set the path and Trigger to execute
         
-        self.waypoint_path = None
-        self.create_subscription(String, '/waypoint_path', self.path_cb, 1)
+        self.create_subscription(String, '/waypoint', self.point_cb, 1)
         self.active_goal = None
         self.queue = []
         self.loop = self.create_timer(0.1, self.control_loop)   # 20Hz
         self.get_logger().info("Waypoint Follower Service Server ready")
         self.get_logger().info("Publish waypoint path to /waypoint_path")
 
-    def path_cb(self, msg):
-        self.waypoint_path = msg.data
-        self.load_waypoints(path=self.waypoint_path)
-        self.reached_all = False
+    def point_cb(self, msg):
+        line = msg.data
+        self.active_goal = 
+        self.reached = False
         self.active = True
         self.get_logger().info(f"Waypoint path set to: {self.waypoint_path}")
 
+    def parse_line(self, line):
+        """x,y,tasktype"""
+        parts = line.strip().split(',')
+        if len(parts) !=3:
+            self.get_logger().error(f"Invalid line: {line}")
+        return [float(parts[0].strip()),float(parts[1].strip()),parts[2].strip()]
     def pose_cb(self, msg):
         self.position = [msg.pose.position.x, msg.pose.position.y]
 
@@ -143,7 +146,7 @@ class WaypointFollowerService(Node):
                 self.get_logger().info(f"Received waypoint: {wp}")
 
     def control_loop(self):
-        if self.reached_all:
+        if self.reached:
             state_msg = Bool()
             state_msg.data = True
             self.state_pub.publish(state_msg)
@@ -154,13 +157,10 @@ class WaypointFollowerService(Node):
         if self.position is None or self.heading is None:
             return
 
-        if self.active_goal is None and self.queue:
-            self.active_goal = self.queue.pop(0)
-            self.get_logger().info(f"Starting waypoint: {self.active_goal}")
-
         if self.active_goal is None:
             return
         
+        self.get_logger().info(f"Starting waypoint: {self.active_goal}")
             
         x, y, task = self.active_goal
 
@@ -173,6 +173,7 @@ class WaypointFollowerService(Node):
         dy = y - self.position[1]
         distance = math.hypot(dx, dy)
 
+
         desire_heading = get_heading_from_coords(dx, dy)
         error_heading = heading_error(self.heading, desire_heading)
 
@@ -184,7 +185,7 @@ class WaypointFollowerService(Node):
             else:
                 self.active_goal = None
                 self.active = False
-                self.reached_all = True
+                self.reached = True
                 pwm = Float32MultiArray()
                 pwm.data = [0.0, 0.0, 0.0]
                 self.pwm_pub.publish(pwm)

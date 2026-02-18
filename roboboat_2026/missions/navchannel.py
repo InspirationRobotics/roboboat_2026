@@ -101,7 +101,7 @@ class Navchannel(Node):
             if self.use_xy:
                 dx = self.position_xy[0] - self.end_point[0]
                 dy = self.position_xy[1] - self.end_point[1]
-                delta_distance = math.sqrt(dx^2 + dy^2)
+                delta_distance = math.sqrt(dx**2 + dy**2)
                 return delta_distance
             else:
                 d = haversine(self.position_latlon[0],self.position_latlon[1],self.end_point[0],self.end_point[1])
