@@ -35,6 +35,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 
 import numpy as np
+import cv2
 
 from sensor_msgs.msg import Image, CameraInfo
 from vision_msgs.msg import Detection3DArray, Detection3D
@@ -106,12 +107,14 @@ class BBox3DEstimator(Node):
         self.declare_parameter('max_depth_m', 15.0)
         self.declare_parameter('bbox_coords', 'pixels')   # 'pixels' | 'normalised'
         self.declare_parameter('output_frame', '')         # '' = use depth frame
+        self.declare_parameter('debug_window', True)       # show cv2 debug window
 
-        self._roi_px       = self.get_parameter('roi_half_px').value
-        self._min_depth    = self.get_parameter('min_depth_m').value
-        self._max_depth    = self.get_parameter('max_depth_m').value
-        self._bbox_coords  = self.get_parameter('bbox_coords').value
-        self._output_frame = self.get_parameter('output_frame').value
+        self._roi_px        = self.get_parameter('roi_half_px').value
+        self._min_depth     = self.get_parameter('min_depth_m').value
+        self._max_depth     = self.get_parameter('max_depth_m').value
+        self._bbox_coords   = self.get_parameter('bbox_coords').value
+        self._output_frame  = self.get_parameter('output_frame').value
+        self._debug_window  = self.get_parameter('debug_window').value
 
         # ---- state ---------------------------------------------------------
         self._latest_depth: Image | None = None
@@ -269,8 +272,99 @@ class BBox3DEstimator(Node):
                 f'Detection -> X={X:.3f}  Y={Y:.3f}  Z={Z:.3f} m  '
                 f'(depth px: {u_d:.1f}, {v_d:.1f})')
 
+        # ---- debug window --------------------------------------------------
+        if self._debug_window:
+            self._show_debug(depth_cv, dets_msg, scale_x, scale_y,
+                             rgb_w, rgb_h, out_msg)
+
         if out_msg.detections:
             self._pub.publish(out_msg)
+
+
+    # -----------------------------------------------------------------------
+    # Debug visualisation
+    # -----------------------------------------------------------------------
+
+    def _show_debug(self, depth_cv: np.ndarray,
+                    dets_msg: Detection3DArray,
+                    scale_x: float, scale_y: float,
+                    rgb_w: int, rgb_h: int,
+                    out_msg: Detection3DArray):
+        """
+        Normalise the depth image to uint8 and draw:
+          - GREEN rect  : bbox projected onto the depth image
+          - CYAN  dot   : bbox centre (sampled point)
+          - WHITE text  : Z distance for successfully estimated detections,
+                          or '---' if the detection was skipped
+        """
+        # Normalise depth to 8-bit for display
+        depth_f = depth_cv.astype(np.float32)
+        valid_mask = depth_f > 0
+        if valid_mask.any():
+            d_min = depth_f[valid_mask].min()
+            d_max = depth_f[valid_mask].max()
+            norm = np.zeros_like(depth_f)
+            if d_max > d_min:
+                norm[valid_mask] = (depth_f[valid_mask] - d_min) / (d_max - d_min) * 255.0
+            vis = norm.astype(np.uint8)
+        else:
+            vis = np.zeros(depth_cv.shape[:2], dtype=np.uint8)
+
+        # Convert to BGR so we can draw coloured overlays
+        vis = cv2.cvtColor(vis, cv2.COLOR_GRAY2BGR)
+
+        # Build a quick lookup: index -> estimated Z (for labelling)
+        # out_msg.detections may be fewer than dets_msg.detections (skipped ones)
+        # so we match by bbox center position stored in out_det
+        estimated = {}   # (raw_u, raw_v) -> Z_m
+        for out_det in out_msg.detections:
+            estimated[(round(out_det.bbox.center.position.x, 1),
+                       round(out_det.bbox.center.position.y, 1))] = \
+                out_det.bbox.center.position.z   # already in metres after backproject
+        # Note: after backproject, position.z == depth_m, so we use it directly.
+
+        for det in dets_msg.detections:
+            raw_u = det.bbox.center.position.x
+            raw_v = det.bbox.center.position.y
+
+            if self._bbox_coords == 'normalised':
+                u_rgb = raw_u * rgb_w
+                v_rgb = raw_v * rgb_h
+                bw_rgb = det.bbox.size.x * rgb_w
+                bh_rgb = det.bbox.size.y * rgb_h
+            else:
+                u_rgb = raw_u
+                v_rgb = raw_v
+                bw_rgb = det.bbox.size.x
+                bh_rgb = det.bbox.size.y
+
+            # Centre and corners in depth image space
+            u_d = int(round(u_rgb * scale_x))
+            v_d = int(round(v_rgb * scale_y))
+            bw_d = int(round(bw_rgb * scale_x))
+            bh_d = int(round(bh_rgb * scale_y))
+
+            x0 = u_d - bw_d // 2
+            y0 = v_d - bh_d // 2
+            x1 = u_d + bw_d // 2
+            y1 = v_d + bh_d // 2
+
+            # Draw bbox rectangle
+            cv2.rectangle(vis, (x0, y0), (x1, y1), (0, 255, 0), 2)
+
+            # Draw centre dot
+            cv2.circle(vis, (u_d, v_d), 4, (255, 255, 0), -1)
+
+            # Label: Z if we have an estimate, else '---'
+            z_val = estimated.get((round(raw_u, 1), round(raw_v, 1)))
+            label = f'{z_val:.2f}m' if z_val is not None else '---'
+            cv2.putText(vis, label,
+                        (x0, max(y0 - 6, 12)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.55,
+                        (255, 255, 255), 1, cv2.LINE_AA)
+
+        cv2.imshow('depth + bbox alignment', vis)
+        cv2.waitKey(1)
 
 
 # ---------------------------------------------------------------------------
