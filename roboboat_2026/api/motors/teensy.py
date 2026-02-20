@@ -89,15 +89,15 @@ class TeensyNode(Node):
             surge,sway,yaw = self.cmd  
 
         if deviceHelper.boat == "barco polo":
-            m1 = -surge -sway -yaw
-            m2 =  - surge + sway + yaw
-            m3 =  surge - sway + yaw
-            m4 =  - surge - sway + yaw
-        elif deviceHelper == "crusader":
-            m1 = -surge -sway -yaw
-            m2 =  - surge + sway + yaw
-            m3 =  surge - sway + yaw
-            m4 =  - surge - sway + yaw
+            m1 = -surge +sway +yaw
+            m2 =  surge + sway + yaw
+            m3 =  surge + sway - yaw
+            m4 =  - surge + sway - yaw
+        elif deviceHelper.boat == "crusader":
+            m1 = -surge -sway +yaw
+            m2 =  - surge - sway - yaw
+            m3 =  surge - sway - yaw
+            m4 =  surge - sway + yaw
 
         with self.lock:
             if self.activate_pump:
@@ -114,9 +114,9 @@ class TeensyNode(Node):
             self.get_logger().error("cmd_vel_normalized must be [surge, sway, yaw]")
             return
 
-        surge = -round(float(msg.data[0]), 6)
-        sway  = -round(float(msg.data[1]), 6)
-        yaw   = -round(float(msg.data[2]), 6)
+        surge = round(float(msg.data[0]), 6)
+        sway  = round(float(msg.data[1]), 6)
+        yaw   = round(float(msg.data[2]), 6)
 
         self.logger.debug(f"pwm: {[surge,sway,yaw]}")
         
