@@ -22,9 +22,9 @@ class SimpleControl:
 
     def control(self, distance, heading_error):
         surge = self.max_surge
-        if distance < 5.0:
-            surge = max(distance / 4.0, 0.2)
-            surge = min(surge,self.max_surge)
+        # if distance < 5.0:
+        #     surge = max(distance / 4.0, 0.2)
+        #     surge = min(surge,self.max_surge)
 
         yaw = 0.0
         if abs(heading_error) > 10:
@@ -216,7 +216,7 @@ class WaypointFollowerService(Node):
         error_heading = heading_error(self.heading, desire_heading)
 
         # Goal reached
-        if distance < 0.5:
+        if distance < 1.2:
             if self.alert_detected:
                 pwm = Float32MultiArray()
                 pwm.data = [0.0, 0.0, 0.0]
