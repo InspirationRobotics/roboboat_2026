@@ -2,7 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray, Float32
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from nav_msgs.msg import Odometry
 from rclpy.parameter import Parameter
@@ -111,6 +111,7 @@ class GPSFusion(Node):
         self.pose_pub = self.create_publisher(PoseStamped, '/fused/pose', 10)
         self.velocity_pub = self.create_publisher(TwistStamped, '/fused/velocity', 10)
         self.odom_pub = self.create_publisher(Odometry, '/fused/odometry', 10)
+        self.origin_pub = self.create_publisher(Float32MultiArray, 'ekforigin',10)
         self.declare_parameter('origin', Parameter.Type.DOUBLE_ARRAY)
         
         # Reference GPS coordinates (set on first GPS message)
@@ -217,6 +218,11 @@ class GPSFusion(Node):
         
         # Publish fused data
         self.publish_fused_data(current_time)
+        
+        origin_msg = Float32MultiArray()
+        origin_msg.data = self.gps_origin
+        print(self.gps_origin)
+        self.origin_pub.publish(origin_msg)
     
     def publish_fused_data(self, timestamp):
         """Publish fused pose and velocity"""

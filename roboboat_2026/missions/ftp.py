@@ -16,14 +16,15 @@ from roboboat_2026.util import deviceHelper
 
 class SimpleControl:
     def __init__(self):
-        self.max_surge = 1.0
-        self.max_yaw = 0.6
+        self.max_surge = 0.9
+        self.max_yaw = 0.5
         self.last_surge = 0.0
 
     def control(self, distance, heading_error):
         surge = self.max_surge
         if distance < 5.0:
             surge = max(distance / 4.0, 0.2)
+            surge = min(surge,self.max_surge)
 
         yaw = 0.0
         if abs(heading_error) > 10:
@@ -35,6 +36,9 @@ class SimpleControl:
             surge = self.last_surge + 0.05
 
         self.last_surge = surge
+        surge = min(surge, self.max_surge)
+        print([surge,yaw])
+
         return surge, yaw
 
 
@@ -74,14 +78,16 @@ class WaypointFollowerService(Node):
         self.request.names = ['origin']
 
         # Get origin
-        future = self.client.call_async(self.request)
-        rclpy.spin_until_future_complete(self, future)
-        if future.result():
-            print(future.result())
-            self.origin =  future.result().values[0]  # the origin of our robot xy plane
-        else:
-            raise RuntimeError('Parameter request failed')
-        
+        # future = self.client.call_async(self.request)
+        # rclpy.spin_until_future_complete(self, future)
+        # if future.result():
+        #     print(future.result())
+        #     self.origin =  future.result().values[0]  # the origin of our robot xy plane
+        # else:
+        #     raise RuntimeError('Parameter request failed')
+        self.origin = None
+        self.create_subscription(Float32MultiArray, 'ekforigin', self.origin_cb, 1)
+
         # Using a simple string-based service (you'll need to create a custom one)
         # For now, I'll use a workaround with SetBool where the request data field isn't used
         # Better approach: use a std_srvs or create minimal custom service
@@ -91,7 +97,7 @@ class WaypointFollowerService(Node):
         # to set the path and Trigger to execute
         
         self.waypoint_path = None
-        self.create_subscription(String, '/waypoint_path', self.path_cb, 1)
+        self.create_subscription(String, '/waypoint_path', self.path_cb, 10)
         self.active_goal = None
         self.queue = []
         self.loop = self.create_timer(0.1, self.control_loop)   # 20Hz
@@ -127,6 +133,11 @@ class WaypointFollowerService(Node):
         print(harbor_pos)
         # self.active_goal = []
 
+    def origin_cb(self, msg):
+        if self.origin is None:
+            self.origin = msg.data
+
+
     def stop_vehicle(self):
         msg = Float32MultiArray()
         msg.data = [0.0, 0.0, 0.0]
@@ -134,9 +145,11 @@ class WaypointFollowerService(Node):
 
     def latlon2xy(self):
         """Convert all lat/lon in self.queue to local XY (meters)"""
-        
-        lat0 = math.radians(self.origin[0])
-        lon0 = math.radians(self.origin[1])
+        print(self.origin)
+        print(type(self.origin))
+        print(self.origin[0])
+        lat0 = math.radians(float(self.origin[0]))
+        lon0 = math.radians(float(self.origin[1]))
 
         R = 6378137.0  # Earth radius in meters (WGS84)
 
@@ -152,6 +165,8 @@ class WaypointFollowerService(Node):
 
             x = R * dlon * math.cos(lat0)   # East
             y = R * dlat                    # North
+            print(f"x is {x}")
+            print(f"y is {y}")
 
             xy_queue.append([x, y, task])
 
@@ -162,8 +177,9 @@ class WaypointFollowerService(Node):
             waypoints = json.load(f)['waypoints']
             for wp in waypoints:
                 self.queue.append([float(wp['lat']), float(wp['lon']),wp['task']])
-                self.latlon2xy()
+                # self.latlon2xy()
                 self.get_logger().info(f"Received waypoint: {wp}")
+            self.latlon2xy()
 
     def control_loop(self):
         if self.reached_all:
