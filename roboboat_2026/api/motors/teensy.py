@@ -118,7 +118,7 @@ class TeensyNode(Node):
         sway  = round(float(msg.data[1]), 6)
         yaw   = round(float(msg.data[2]), 6)
 
-        self.logger.debug(f"pwm: {[surge,sway,yaw]}")
+        # self.logger.debug(f"pwm: {[surge,sway,yaw]}")
         
         with self.lock:
             self.cmd = [surge,sway,yaw]
@@ -145,7 +145,7 @@ class TeensyNode(Node):
             if not line:
                 return 
             if not line.isdigit():
-                self.get_logger().warning(f"Non-numeric line from teensy: {repr(line)}")
+                # self.get_logger().warning(f"Non-numeric line from teensy: {repr(line)}")
                 return
             val = int(line)
             if val == 1:
@@ -159,8 +159,9 @@ class TeensyNode(Node):
             self.state_pub.publish(msg)
 
         except Exception as e:
-            self.get_logger().warning(f"Exception in read_loop, line is {repr(line)}")
-            self.get_logger().error(str(e))
+            # self.get_logger().warning(f"Exception in read_loop, line is {repr(line)}")
+            # self.get_logger().error(str(e))
+            pass
 
     def destroy_node(self):
         self.get_logger().info("Stopping thrusters...")

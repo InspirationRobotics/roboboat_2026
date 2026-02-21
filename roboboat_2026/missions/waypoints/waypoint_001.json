@@ -1,7 +1,7 @@
 {
   "frame_id": "map",
   "waypoints": [
-    { "id": 1, "name": "Start", "lat": 27.2462158203125, "lon": -82.4936294555664, "task":"UNKNOWN" },
-    { "id": 2, "name": "Gate",  "lat": 27.2462100982666, "lon": -82.49366760253906, "task":"UNKNOWN" }
+      {"id": 1, "name": "WP_18", "lat": 27.373252868652344, "lon": -82.4524917602539, "task": "UNKNOWN"},
+    {"id": 2, "name": "WP_19", "lat": 27.373252868652344, "lon": -82.45247650146484, "task": "UNKNOWN"}
   ]
 }

@@ -16,7 +16,7 @@ from roboboat_2026.util import deviceHelper
 
 class SimpleControl:
     def __init__(self):
-        self.max_surge = 0.9
+        self.max_surge = 0.60
         self.max_yaw = 0.5
         self.last_surge = 0.0
 
@@ -37,7 +37,7 @@ class SimpleControl:
 
         self.last_surge = surge
         surge = min(surge, self.max_surge)
-        print([surge,yaw])
+        #print([surge,yaw])
 
         return surge, yaw
 
@@ -238,7 +238,7 @@ class WaypointFollowerService(Node):
                 self.state_pub.publish(state_msg)
             return
         
-        self.get_logger().info(f"{distance:.2f} m to goal | heading error: {error_heading:.1f}")
+        self.get_logger().info(f"{distance:.2f} m to goal | heading error: {error_heading:.1f}",throttle_duration_sec = 1)
         surge, yaw = self.controller.control(distance, error_heading)
         pwm = Float32MultiArray()
         pwm.data = [float(surge), 0.0, float(yaw)]

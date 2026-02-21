@@ -15,13 +15,18 @@ class FinalMission(Node):
         self.wp_feedback_sub = self.create_subscription(Bool, '/WP_finished', self.state_cb, 1)
         self.wp_finished = False
         self.main_thread = Thread(target=self.run,daemon=True)
-        
+        self.pwm_pub = self.create_publisher(Float32MultiArray, 'teensy/pwm',10)
         self.get_logger().info("Mission ready")
         self.water_pump = self.create_client(Trigger, 'toggle_water_pump')
+        self.launcher = self.create_client(Trigger, 'toggle_ball_launcher')
         while not self.water_pump.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('service not available, waiting again...')
         
         self.pump_req = Trigger.Request()
+
+        while not self.launcher.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info("Waiting for launcher")
+        self.launcher_req = Trigger.Request()
         self.main_thread.start()
 
 
@@ -36,7 +41,9 @@ class FinalMission(Node):
         self.future = self.water_pump.call_async(request)
         self.get_logger().info("Request Water Pump !")
         
-
+    def trigger_launcher(self):
+        request = Trigger.Request()
+        # TODOs 
     def send_waypoints(self, path):
         path_msg = String()
         path_msg.data = path
@@ -59,21 +66,25 @@ class FinalMission(Node):
         # self.report_wrap("GatePass,EXIT,32.112345,-21.12345")
 
         while not self.wp_finished:
-            print("I;m sleeping")
+           # print("I;m sleeping")
             time.sleep(1)
 
         # Nav Channel
-        self.wp_finished = False
-        self.send_waypoints(path="/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_002.json")
-        while not self.wp_finished:
-            time.sleep(1)
+        # self.wp_finished = False
+        # self.send_waypoints(path="/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_002.json")
+        # while not self.wp_finished:
+        #     time.sleep(1)
         
         # Do Water pummp
-        self.trigger_pump()
+        # self.trigger_pump()
 
-        time.sleep(2)
+        time.sleep(5)
 
-        self.trigger_pump()
+        back_msg = Float32MultiArray()
+        back_msg.data = [-0.6,0.0,0.0]
+        self.pwm_pub.publish(back_msg)
+
+        # self.trigger_pump()
 def main():
     rclpy.init()
     client = FinalMission()

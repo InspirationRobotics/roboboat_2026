@@ -221,7 +221,7 @@ class GPSFusion(Node):
         
         origin_msg = Float32MultiArray()
         origin_msg.data = self.gps_origin
-        print(self.gps_origin)
+        # print(self.gps_origin)
         self.origin_pub.publish(origin_msg)
     
     def publish_fused_data(self, timestamp):
