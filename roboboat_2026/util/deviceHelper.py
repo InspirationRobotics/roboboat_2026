@@ -75,12 +75,12 @@ def findFromId(ids):
             # Strip volatile port number from both config and usbLink.sh output
             # config:  "/devices/.../1-2.4:1.0/tty/ttyACM0"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
             # We strip off the last character (the number) from the config ID string
-            config_base = platform_id[:-1] 
+            config_base = platform_id[:-13] 
 
             # actual: "/devices/.../1-2.4:1.0/tty/ttyACM5"  -> "/devices/.../1-2.4:1.0/tty/ttyACM"
             # We strip off the last character (the number) from the actual found path
             actual_base = dev_platform.rsplit('/', 2)[0]
-            actual_base_full = actual_base[:-4]
+            actual_base_full = actual_base[:-16]
             # DEBUGGING STEP: line temporarily to see exact values
             print(f"Comparing: '{config_base}' == '{actual_base_full}'") 
             

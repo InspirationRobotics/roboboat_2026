@@ -24,8 +24,8 @@ class FinalMission(Node):
         
         self.pump_req = Trigger.Request()
 
-        while not self.launcher.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info("Waiting for launcher")
+        # while not self.launcher.wait_for_service(timeout_sec=1.0):
+        #     self.get_logger().info("Waiting for launcher")
         self.launcher_req = Trigger.Request()
         self.main_thread.start()
 
@@ -61,6 +61,8 @@ class FinalMission(Node):
         
         # Entry & Exit Gate mission
         # self.report_wrap("GatePass,ENTRY,32.112345,-21.12345")
+        self.get_logger().info("Waiting for 30s to do harbor alert")
+        time.sleep(30)
         self.wp_finished = False
         self.send_waypoints(path="/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json")
         # self.report_wrap("GatePass,EXIT,32.112345,-21.12345")

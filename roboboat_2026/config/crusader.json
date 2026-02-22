@@ -3,5 +3,7 @@
     "ball_launcher": {"port": "/devices/platform/bus@0/3610000.usb/usb1/1-2/1-2.4/1-2.4.3/1-2.4.3:1.0/tty/ttyACM0", "rate" : 9600},
     "gps": {"port": "/devices/platform/bus@0/3610000.usb/usb1/1-2/1-2.1/1-2.1:1.0/ttyUSB0/tty/ttyUSB0", "rate" : 115200},
     "oakd_lr": {"id": ""},
-    "led": {"port": "/devices/platform/bus@0/3610000.usb/usb1/1-2/1-2.4/1-2.4.4/1-2.4.4:1.0/ttyUSB1/tty/ttyUSB1", "rate":115200}
+    "led": {"port": "/devices/platform/bus@0/3610000.usb/usb1/1-2/1-2.4/1-2.4.4/1-2.4.4:1.0/ttyUSB1/tty/ttyUSB1", "rate":115200},
+    "harbor_pos": {"one_blast": [27.37325668334961,-82.4527587890625],"two_blast":[27.3732852935791
+,-82.45259857177734]}
 }

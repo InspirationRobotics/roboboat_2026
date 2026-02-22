@@ -16,7 +16,7 @@ from roboboat_2026.util import deviceHelper
 
 class SimpleControl:
     def __init__(self):
-        self.max_surge = 0.60
+        self.max_surge = 0.4
         self.max_yaw = 0.5
         self.last_surge = 0.0
 
@@ -131,7 +131,12 @@ class WaypointFollowerService(Node):
             self.get_logger().warn("INVALID ALERT MSG")
             return
         print(harbor_pos)
-        # self.active_goal = []
+
+        x,y = self.alert2xy(harbor_pos[0],harbor_pos[1])
+        self.active = False
+        self.active_goal = [x,y,"SOUND_SIGNAL"]
+        self.active = True
+        self.alert_detected = True
 
     def origin_cb(self, msg):
         if self.origin is None:
@@ -142,6 +147,24 @@ class WaypointFollowerService(Node):
         msg = Float32MultiArray()
         msg.data = [0.0, 0.0, 0.0]
         self.pwm_pub.publish(msg)
+
+    def alert2xy(self,lat,lon):
+        lat1 = math.radians(float(lat))
+        lon1 = math.radians(float(lon))
+
+        R = 6378137.0
+
+        lat0 = math.radians(float(self.origin[0]))
+        lon0 = math.radians(float(self.origin[1]))
+
+        dlat = lat1 - lat0
+        dlon = lon1 - lon0
+
+        x = R * dlon * math.cos(lat0)
+        y = R * dlat
+        print(f"x is {x}")
+        print(f"y is {y}")
+        return x,y
 
     def latlon2xy(self):
         """Convert all lat/lon in self.queue to local XY (meters)"""
@@ -215,12 +238,18 @@ class WaypointFollowerService(Node):
         desire_heading = get_heading_from_coords(dx, dy)
         error_heading = heading_error(self.heading, desire_heading)
 
+        tolerance = 1.5
+        if task=="DOCKING":
+            tolerance = 0.5
+
         # Goal reached
-        if distance < 1.2:
-            if self.alert_detected:
+        if distance < 0.5:
+            if self.alert_detected and not self.alert_finished:
                 pwm = Float32MultiArray()
                 pwm.data = [0.0, 0.0, 0.0]
                 self.pwm_pub.publish(pwm)
+                self.alert_finished = True
+           
                 time.sleep(10) # sleep for 10s show that we stay at harbor alert
 
             self.get_logger().info(f"Reached waypoint x={x}, y={y}")
