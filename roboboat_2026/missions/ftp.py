@@ -142,6 +142,17 @@ class WaypointFollowerService(Node):
         if self.origin is None:
             self.origin = msg.data
 
+    def point_cb(self,msg):
+        """Point will be given in lat lon for waypoint nav"""
+        lat, lon, task_idx = msg.data
+        tasks = ['UNKNOWN','NONE','ENTRY_EXIT','NAV_CHANNEL','SPEED_CHALLENGE','OBJECT_DELIVERY','DOCKING','SOUND_SIGNAL']
+        x,y = self.alert2xy(lat,lon)
+
+        # override the current point
+        self.reached_all = False
+        self.active = True
+        self.active_goal = [x,y,tasks[int(task_idx)]]
+        
 
     def stop_vehicle(self):
         msg = Float32MultiArray()

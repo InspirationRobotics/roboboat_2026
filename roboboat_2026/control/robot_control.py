@@ -45,13 +45,13 @@ class RobotControl(Node):
 
         # subscriber
         self.odom_sub = self.create_subscription(
-            Odometry, '/fused/odometry', self.odom_callback,10
+            Odometry, '/fused/odometry', self.odom_cb,10
         )
 
         self.gps_sub = self.create_subscription(
             Float32MultiArray,
             '/GPS', 
-            self.gps_callback,
+            self.gps_cb,
             10
         )
 
@@ -71,14 +71,40 @@ class RobotControl(Node):
 
 
     """Callbacks"""
-    def odom_callback(self, msg):
+    def odom_cb(self, msg):
         with self.lock:
             self.position = [msg.pose.position.x,msg.pose.position.y]
             self.velocity = [msg.twist.linear.x, msg.twist.linear.y]
 
-    def gps_callback(self, msg):
+    def gps_cb(self, msg):
         with self.lock:
             self.heading = msg.data[2]  # extract heading only
+
+
+    def origin_cb(self, msg):
+        if self.origin is None:
+            self.origin = msg.data
+
+    def alert_cb(self, msg):
+        self.alert_detected = True
+        line = msg.data
+        lines = line.strip().split(',')
+        if lines[0]=="0":
+            harbor_pos = self.config.get('harbor_pos').get("one_blast")
+        elif lines[0] == "1":
+            harbor_pos = self.config.get('harbor_pos').get("one_blast")
+        elif lines[0] == "2":
+            harbor_pos = self.config.get('harbor_pos').get("two_blast")
+        else:
+            self.get_logger().warn("INVALID ALERT MSG")
+            return
+        print(harbor_pos)
+
+        x,y = self.alert2xy(harbor_pos[0],harbor_pos[1])
+        self.active = False
+        self.active_goal = [x,y,"SOUND_SIGNAL"]
+        self.active = True
+        self.alert_detected = True
     
     """Setters"""
     def set_state(self, next_state:str):
@@ -120,6 +146,11 @@ class RobotControl(Node):
         pass
 
     """Simple movements"""
+    def stop_vehicle(self):
+        msg = Float32MultiArray()
+        msg.data = [0.0, 0.0, 0.0]
+        self.pwm_pub.publish(msg)
+
     def go_to_abs_heading(self, desire_heading):
         # set to manual state
         prev_state = self.state
@@ -145,12 +176,11 @@ class RobotControl(Node):
         
     def go_forward(self, distance):
         """
-        Going forward, state will be in heading hold
+        Going forward, 
         
         :param distance: forward distance, can be negative
         """
-        self.set_heading(self.heading)
-        self.set_state("HEADING_HOLD")
+
         init_position = self.position
         moved_distance = get_distance((init_position[0],init_position[1]),(self.position[0],self.position[1]))
         while abs(moved_distance) - 0.5 < distance:  # 0.5 m tolerance
