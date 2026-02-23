@@ -38,7 +38,7 @@ class FinalMission(Node):
         self.ivc_pub = self.create_publisher(String,'/ivc/send',10)
 
         # LED stuff
-        self.led_pub = self.create_publishder(Int32, '/led_state',10)
+        self.led_pub = self.create_publisher(Int32, '/led_state',10)
         rclpy.spin(self)
 
     def load_waypoints(self, path):
