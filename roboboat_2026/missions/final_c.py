@@ -4,7 +4,7 @@ import rclpy
 import time
 import math
 from rclpy.node import Node
-from std_msgs.msg import Float32MultiArray, String, Bool
+from std_msgs.msg import Float32MultiArray, String, Bool, Int32
 from threading import Thread, Lock
 import json
 
@@ -37,6 +37,8 @@ class FinalMission(Node):
         # IVC stuff
         self.ivc_pub = self.create_publisher(String,'/ivc/send',10)
 
+        # LED stuff
+        self.led_pub = self.create_publishder(Int32, '/led_state',10)
         rclpy.spin(self)
 
     def load_waypoints(self, path):
@@ -60,6 +62,11 @@ class FinalMission(Node):
     def trigger_launcher(self):
         request = Trigger.Request()
         # TODOs 
+
+    def send_led(self,flash):
+        msg = Int32()
+        msg.data = int(flash)
+        self.led_pub.publish(msg)
 
     def send_ivc(self,line):
         msg = String()
@@ -116,6 +123,7 @@ class FinalMission(Node):
 
         # Entry & Exit Gate mission
         self.send_ivc("Start Gate")
+        self.send_led(1)
         self.get_logger().info("Starting Entry Exit Gate")
         return_home_pos = self.gps_pos
         self.get_logger().info(f"Return home pos is {return_home_pos}")
@@ -124,8 +132,10 @@ class FinalMission(Node):
         self.nav2point([new_lat,new_lon,"ENTRY_EXIT"])
         self.report_wrap(f"GatePass,EXIT,{self.gps_pos[0]},{self.gps_pos[1]}")
         self.send_ivc("End Gate")
+        self.send_led(1)
 
         # Nav Channel
+        self.send_led(1)
         self.send_ivc("Start Nav")
         self.nav2point(wpbook['N1'])
         self.report_wrap(f"ObjectDetected,BOAT,RED,32.112345,-21.12345,1,NAV_CHANNEL")
@@ -134,12 +144,15 @@ class FinalMission(Node):
         self.report_wrap(f"ObjectDetected,BUOY,RED,32.112345,-21.12345,2,NAV_CHANNEL")
         self.report_wrap(f"ObjectDetected,LIGHT_BEACON,RED,32.112345,-21.12345,3,NAV_CHANNEL")
         self.send_ivc('End Nav')
+        self.send_led(1)
 
         # Docking
+        self.send_led(1)
         self.send_ivc("Start Docking")
         self.nav2point(wpbook['D1'])
         self.nav2point(wpbook['D2'])
         self.nav2point(wpbook['D3'])
+        self.send_led(1)
 
 
         time.sleep(5)

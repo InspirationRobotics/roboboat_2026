@@ -52,6 +52,7 @@ class IVCNode(Node):
 
         self.lisener = self.create_timer(0.2, self.listening_loop) # Check new message at 5 Hz
         
+        self.get_logger().info("Initialized IVC")
 
     def send_callback(self, msg):
         """Send message to target"""
