@@ -17,7 +17,7 @@ from roboboat_2026.api.util.gis_funcs import latlon2xy
 
 class SimpleControl:
     def __init__(self):
-        self.max_surge = 0.4
+        self.max_surge = 0.8
         self.max_yaw = 0.5
         self.last_surge = 0.0
 
@@ -41,6 +41,9 @@ class SimpleControl:
         #print([surge,yaw])
 
         return surge, yaw
+    
+    def set_max_surge(self,value):
+        self.max_surge = value
 
 
 class WaypointFollowerService(Node):
@@ -244,11 +247,14 @@ class WaypointFollowerService(Node):
         error_heading = heading_error(self.heading, desire_heading)
 
         tolerance = 1.5
+        self.controller.set_max_surge(0.8)
         if task=="DOCKING":
             tolerance = 0.5
+            self.controller.set_max_surge(0.4)
+        
 
         # Goal reached
-        if distance < 0.5:
+        if distance < tolerance:
             if self.alert_detected and not self.alert_finished:
                 pwm = Float32MultiArray()
                 pwm.data = [0.0, 0.0, 0.0]

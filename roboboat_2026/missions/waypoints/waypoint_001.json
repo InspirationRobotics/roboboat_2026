@@ -1,9 +1,17 @@
 {
   "frame_id": "map",
+  "count": 8,
   "waypoints": [
-    {"id": 1, "name": "E1", "lat": 27.373260498046875, "lon": -82.45264434814453, "task": "DOCKING"},
-    {"id": 2, "name": "N1", "lat": 27.373245239257812, "lon": -82.45258331298828, "task": "DOCKING"},
-    {"id": 3, "name": "S1", "lat": 27.373239517211914, "lon": -82.45250701904297, "task": "DOCKING"},
-    {"id": 4, "name": "O1", "lat": 27.37322235107422, "lon": -82.45247650146484, "task": "DOCKING"}
-    ]
+    {"id": 1, "name": "E1", "lat": 27.3748428, "lon": -82.4529146, "task": "UNKNOWN"},
+    {"id": 2, "name": "E2", "lat": 27.3748215, "lon": -82.452625, "task": "UNKNOWN"},
+    {"id": 3, "name": "E3", "lat": 27.3751134, "lon": -82.45262, "task": "UNKNOWN"},
+    {"id": 4, "name": "D1", "lat": 27.3751145, "lon": -82.4525795, "task": "UNKNOWN"},
+    {"id": 5, "name": "D2", "lat": 27.3751493, "lon": -82.4525656, "task": "UNKNOWN"},
+    {"id": 6, "name": "R1", "lat": 27.3751134, "lon": -82.45262, "task": "UNKNOWN"},
+    {"id": 7, "name": "R2", "lat": 27.3748215, "lon": -82.452625, "task": "UNKNOWN"},
+    {"id": 8, "name": "R3", "lat": 27.3748428, "lon": -82.4529146, "task": "UNKNOWN"},
+    {"id": 9, "name": "N1", "lat": 27.3748855, "lon": -82.4527667, "task": "UNKNOWN"},
+    {"id": 10, "name": "N2", "lat": 27.3748911, "lon": -82.4526402, "task": "UNKNOWN"},
+    {"id": 11, "name": "N3", "lat": 27.3748428, "lon": -82.4529146, "task": "UNKNOWN"}
+  ]
 }

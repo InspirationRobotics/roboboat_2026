@@ -85,7 +85,7 @@ class FinalMission(Node):
         while not self.wp_finished:
             time.sleep(1)
         self.get_logger().info(f"Reached wp {point}")
-
+    
     def move_by_time(self,pwms,t):
         msg = Float32MultiArray()
         msg.data = pwms
@@ -105,17 +105,13 @@ class FinalMission(Node):
             self.get_logger().info("Waiting for GPS info")
             time.sleep(1)
 
-        return_home_pos = self.gps_pos
-        self.get_logger().info(f"Return home pos is {return_home_pos}")
         # Entry & Exit Gate mission
         self.get_logger().info("Starting Entry Exit Gate")
+        return_home_pos = self.gps_pos
+        self.get_logger().info(f"Return home pos is {return_home_pos}")
         self.report_wrap(f"GatePass,ENTRY,{self.gps_pos[0]},{self.gps_pos[1]}")
-        for key,value in wpbook.items():
-            print(key)
-            print(str(key).startswith("E"))
-            if str(key).startswith("E"):
-                self.get_logger().info(f"Navigating to E {value}")
-                self.nav2point(value)
+        new_lat, new_lon = move_latlon(self.gps_pos[0],self.gps[1],direction='east',distance_m=20)
+        self.nav2point([new_lat,new_lon])
         self.report_wrap(f"GatePass,EXIT,{self.gps_pos[0]},{self.gps_pos[1]}")
 
         # Nav Channel
@@ -159,7 +155,6 @@ class FinalMission(Node):
                 self.get_logger().info(f"Navigating to R {value}")
                 self.nav2point(value)
 
-        self.nav2point(return_home_pos)
     def destroy_node(self):
         self.get_logger().info("Custom destroy_node")
         self.timer.cancel()

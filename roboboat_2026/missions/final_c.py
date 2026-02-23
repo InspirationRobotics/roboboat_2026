@@ -85,7 +85,7 @@ class FinalMission(Node):
         while not self.wp_finished:
             time.sleep(1)
         self.get_logger().info(f"Reached wp {point}")
-
+    
     def move_by_time(self,pwms,t):
         msg = Float32MultiArray()
         msg.data = pwms
@@ -93,7 +93,7 @@ class FinalMission(Node):
         time.sleep(t)
         msg.data = [0.0,0.0,0.0]
         self.pwm_pub.publish(msg)
-        
+
     def run(self):
         print("Start running")
         # Step 1, load all waypoints
@@ -105,47 +105,31 @@ class FinalMission(Node):
             self.get_logger().info("Waiting for GPS info")
             time.sleep(1)
 
-        return_home_pos = self.gps_pos
-        self.get_logger().info(f"Return home pos is {return_home_pos}")
         # Entry & Exit Gate mission
         self.get_logger().info("Starting Entry Exit Gate")
+        return_home_pos = self.gps_pos
+        self.get_logger().info(f"Return home pos is {return_home_pos}")
         self.report_wrap(f"GatePass,ENTRY,{self.gps_pos[0]},{self.gps_pos[1]}")
-        for key,value in wpbook.items():
-            print(key)
-            print(str(key).startswith("E"))
-            if str(key).startswith("E"):
-                self.get_logger().info(f"Navigating to E {value}")
-                self.nav2point(value)
+        new_lat, new_lon = move_latlon(self.gps_pos[0],self.gps[1],direction='east',distance_m=20)
+        self.nav2point([new_lat,new_lon])
         self.report_wrap(f"GatePass,EXIT,{self.gps_pos[0]},{self.gps_pos[1]}")
 
         # Nav Channel
-        for key,value in wpbook.items():
-            if str(key).startswith("N"):
-                self.get_logger().info(f"Navigating to N {value}")
-                self.nav2point(value)
-            if key=="N2":
-                # Report some stuff
-                self.report_wrap(f"ObjectDetected,BOAT,RED,32.112345,-21.12345,1,NAV_CHANNEL")
-                self.report_wrap(f"ObjectDetected,BUOY,RED,32.112345,-21.12345,2,NAV_CHANNEL")
-                self.report_wrap(f"ObjectDetected,LIGHT_BEACON,RED,32.112345,-21.12345,3,NAV_CHANNEL")
+        self.nav2point(wpbook['N1'])
+        self.report_wrap(f"ObjectDetected,BOAT,RED,32.112345,-21.12345,1,NAV_CHANNEL")
+        self.nav2point(wpbook['N2'])
+        self.nav2point(wpbook['N3'])
+        self.report_wrap(f"ObjectDetected,BUOY,RED,32.112345,-21.12345,2,NAV_CHANNEL")
+        self.report_wrap(f"ObjectDetected,LIGHT_BEACON,RED,32.112345,-21.12345,3,NAV_CHANNEL")
 
         # Docking
-        for key,value in wpbook.items():
-            if str(key).startswith("D"):
-                self.get_logger().info(f"Navigating to D {value}")
-                self.nav2point(value)
-
-            if key=="D3":
-                time.sleep(5)
-                back_msg = Float32MultiArray()
-                back_msg.data = [-0.6,0.0,0.0]
-                self.pwm_pub.publish(back_msg)
+        self.nav2point(wpbook['D1'])
+        self.nav2point(wpbook['D2'])
+        self.nav2point(wpbook['D3'])
 
         time.sleep(5)
         
-        back_msg = Float32MultiArray()
-        back_msg.data = [-0.6,0.0,0.0]
-        self.pwm_pub.publish(back_msg)
+        self.move_by_time(pwms=[-0.6,0.0,0.0],t=4)
 
         # Speed Challenge
         for key,value in wpbook.items():
@@ -159,7 +143,6 @@ class FinalMission(Node):
                 self.get_logger().info(f"Navigating to R {value}")
                 self.nav2point(value)
 
-        self.nav2point(return_home_pos)
     def destroy_node(self):
         self.get_logger().info("Custom destroy_node")
         self.timer.cancel()
