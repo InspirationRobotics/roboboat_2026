@@ -16,14 +16,22 @@ from roboboat_2026.api.util.gis_funcs import move_latlon
 class FinalMission(Node):
     def __init__(self):
         super().__init__('jFinal')
+
+        # WP related
         self.wp_feedback_sub = self.create_subscription(Bool, '/WP_finished', self.state_cb, 1)
         self.wp_pub = self.create_publisher(Float32MultiArray, '/nav2point', 10)
         self.wp_finished = False
+
+        # Control related
         self.main_thread = Thread(target=self.run,daemon=True)
         self.pwm_pub = self.create_publisher(Float32MultiArray, 'teensy/pwm',10)
 
         # report pub
         self.report_pub = self.create_publisher(String, '/report',10)
+
+        # GPS Sub
+        self.gps_sub = self.create_subscription(Float32MultiArray, '/GPS', self.gps_cb, 1)
+        self.gps_pos = None
 
         rclpy.spin(self)
 
@@ -54,6 +62,9 @@ class FinalMission(Node):
     def state_cb(self,msg):
         self.wp_finished = msg.data
     
+    def gps_cb(self,msg):
+        self.gps_pos = [msg.data[0],msg.data[1]]
+        
     def report_wrap(self, msg):
         report_msg = String()
         report_msg.data = msg
@@ -73,20 +84,54 @@ class FinalMission(Node):
         self.get_logger().info(f"Waypoints loaded")
 
         # Entry & Exit Gate mission
+        self.report_wrap(f"GatePass,ENTRY,{self.gps_pos[0]},{self.gps_pos[1]}")
         for key,value in enumerate(wpbook):
             if str(key).startswith("E"):
-                # This is Entry & Exit
                 self.get_logger().info(f"Navigating to E {value}")
                 self.nav2point(value)
+        self.report_wrap(f"GatePass,EXIT,{self.gps_pos[0]},{self.gps_pos[1]}")
 
+        # Nav Channel
+        for key,value in enumerate(wpbook):
+            if str(key).startswith("N"):
+                self.get_logger().info(f"Navigating to N {value}")
+                self.nav2point(value)
+            if key=="N2":
+                # Report some stuff
+                self.report_wrap(f"ObjectDetected,BOAT,RED,32.112345,-21.12345,1,NAV_CHANNEL")
+                self.report_wrap(f"ObjectDetected,BUOY,RED,32.112345,-21.12345,2,NAV_CHANNEL")
+                self.report_wrap(f"ObjectDetected,LIGHT_BEACON,RED,32.112345,-21.12345,3,NAV_CHANNEL")
+
+        # Docking
+        for key,value in enumerate(wpbook):
+            if str(key).startswith("D"):
+                self.get_logger().info(f"Navigating to D {value}")
+                self.nav2point(value)
+
+            if key=="D3":
+                time.sleep(5)
+                back_msg = Float32MultiArray()
+                back_msg.data = [-0.6,0.0,0.0]
+                self.pwm_pub.publish(back_msg)
 
         time.sleep(5)
-
+        
         back_msg = Float32MultiArray()
         back_msg.data = [-0.6,0.0,0.0]
         self.pwm_pub.publish(back_msg)
 
-        # self.trigger_pump()
+        # Speed Challenge
+        for key,value in enumerate(wpbook):
+            if str(key).startswith("R"):
+                self.get_logger().info(f"Navigating to R {value}")
+                self.nav2point(value)
+
+        # Return home
+        for key,value in enumerate(wpbook):
+            if str(key).startswith("R"):
+                self.get_logger().info(f"Navigating to R {value}")
+                self.nav2point(value)
+
 def main():
     rclpy.init()
     client = FinalMission()

@@ -352,12 +352,29 @@ class WaypointFollowerService(Node):
             self.is_executing = False
 
         return response
+    
+    def shutdown(self):
+        """Custom shutdown logic"""
+        self.get_logger().info("Shutdown FTP node started")
+
+        if hasattr(self, 'loop'):
+            self.loop.cancel()
+
+        # stop motors, save logs, close files, etc.
+        self.stop_vehicle()
+
+        self.get_logger().info("Destroying node")
+        super().destroy_node()
 
 
 def main():
     rclpy.init()
     node = WaypointFollowerService()
-    rclpy.spin(node)
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info("Ctrl-C received")
+
     node.destroy_node()
     rclpy.shutdown()
 
