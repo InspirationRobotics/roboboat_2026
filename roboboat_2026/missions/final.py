@@ -105,7 +105,7 @@ class FinalMission(Node):
         self.report_wrap(f"GatePass,EXIT,{self.gps_pos[0]},{self.gps_pos[1]}")
 
         # Nav Channel
-        for key,value in enumerate(wpbook):
+        for key,value in wpbook.items():
             if str(key).startswith("N"):
                 self.get_logger().info(f"Navigating to N {value}")
                 self.nav2point(value)
@@ -116,7 +116,7 @@ class FinalMission(Node):
                 self.report_wrap(f"ObjectDetected,LIGHT_BEACON,RED,32.112345,-21.12345,3,NAV_CHANNEL")
 
         # Docking
-        for key,value in enumerate(wpbook):
+        for key,value in wpbook.items():
             if str(key).startswith("D"):
                 self.get_logger().info(f"Navigating to D {value}")
                 self.nav2point(value)
@@ -134,13 +134,13 @@ class FinalMission(Node):
         self.pwm_pub.publish(back_msg)
 
         # Speed Challenge
-        for key,value in enumerate(wpbook):
-            if str(key).startswith("R"):
-                self.get_logger().info(f"Navigating to R {value}")
+        for key,value in wpbook.items():
+            if str(key).startswith("S"):
+                self.get_logger().info(f"Navigating to S {value}")
                 self.nav2point(value)
 
         # Return home
-        for key,value in enumerate(wpbook):
+        for key,value in wpbook.items():
             if str(key).startswith("R"):
                 self.get_logger().info(f"Navigating to R {value}")
                 self.nav2point(value)
@@ -148,13 +148,12 @@ class FinalMission(Node):
     def destroy_node(self):
         self.get_logger().info("Custom destroy_node")
         self.timer.cancel()
-        
+        self.main_thread.join()    
         super().destroy_node()
 
 def main():
     rclpy.init()
     client = FinalMission()
-    self.main_thread.join()
     client.destroy_node()
     rclpy.shutdown()
 
