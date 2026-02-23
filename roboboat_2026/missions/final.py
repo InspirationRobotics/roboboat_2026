@@ -24,6 +24,7 @@ class FinalMission(Node):
 
         # Control related
         self.main_thread = Thread(target=self.run,daemon=True)
+        self.main_thread.start()
         self.pwm_pub = self.create_publisher(Float32MultiArray, 'teensy/pwm',10)
 
         # report pub
@@ -38,13 +39,15 @@ class FinalMission(Node):
     def load_waypoints(self, path):
         with open(path, 'r') as f:
             file = json.load(f)
+            print(file)
             waypoints = file['waypoints']
-            names = file['name']
             wp_ls = []
+            waypoint_dict = {}
+            # print(waypoints)
             for wp in waypoints:
-                wp_ls.append([float(wp['lat']), float(wp['lon']),wp['task']])
-        waypoint_dict = dict(zip(names, waypoints))
-        return waypoint_dict
+                waypoint_dict[wp['name']] = [float(wp['lat']), float(wp['lon']),wp['task']]
+            # waypoint_dict = dict(zip(name_ls, wp_ls))
+            return waypoint_dict
 
     def trigger_pump(self):
         request = Trigger.Request()
@@ -72,6 +75,7 @@ class FinalMission(Node):
 
     def nav2point(self,point):
         """Point should be [lat,lon]"""
+        self.get_logger().info(f"Navigate to {point}")
         self.wp_finished = False
         self.send_waypoint(point)
         while not self.wp_finished:
@@ -79,13 +83,22 @@ class FinalMission(Node):
         self.get_logger().info(f"Reached wp {point}")
         
     def run(self):
+        print("Start running")
         # Step 1, load all waypoints
-        wpbook = self.load_waypoints("/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_002.json")
+        wpbook = self.load_waypoints("/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json")
         self.get_logger().info(f"Waypoints loaded")
+        self.get_logger().info(f"{wpbook}")
+        
+        while self.gps_pos is None:
+            self.get_logger().info("Waiting for GPS info")
+            time.sleep(1)
 
         # Entry & Exit Gate mission
+        self.get_logger().info("Starting Entry Exit Gate")
         self.report_wrap(f"GatePass,ENTRY,{self.gps_pos[0]},{self.gps_pos[1]}")
-        for key,value in enumerate(wpbook):
+        for key,value in wpbook.items():
+            print(key)
+            print(str(key).startswith("E"))
             if str(key).startswith("E"):
                 self.get_logger().info(f"Navigating to E {value}")
                 self.nav2point(value)
@@ -132,10 +145,16 @@ class FinalMission(Node):
                 self.get_logger().info(f"Navigating to R {value}")
                 self.nav2point(value)
 
+    def destroy_node(self):
+        self.get_logger().info("Custom destroy_node")
+        self.timer.cancel()
+        
+        super().destroy_node()
+
 def main():
     rclpy.init()
     client = FinalMission()
-
+    self.main_thread.join()
     client.destroy_node()
     rclpy.shutdown()
 
