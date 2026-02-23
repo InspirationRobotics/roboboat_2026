@@ -12,7 +12,8 @@ from std_srvs.srv import Trigger
 from std_srvs.srv import SetBool
 
 from roboboat_2026.util.helper import heading_error, get_heading_from_coords
-from roboboat_2026.util import deviceHelper
+from roboboat_2026.util import deviceHelper 
+from roboboat_2026.api.util.gis_funcs import latlon2xy
 
 class SimpleControl:
     def __init__(self):
@@ -57,6 +58,8 @@ class WaypointFollowerService(Node):
         self.create_subscription(PoseStamped, '/fused/pose', self.pose_cb, 10)
         self.create_subscription(Float32MultiArray, '/GPS', self.gps_cb, 10)
         self.create_subscription(String, '/harbor_alert',self.alert_cb, 10)
+        self.create_subscription(Float32MultiArray, '/nav2point',self.point_cb,10)
+        
 
         # flags
         self.alert_detected = False
@@ -78,26 +81,11 @@ class WaypointFollowerService(Node):
         self.request.names = ['origin']
 
         # Get origin
-        # future = self.client.call_async(self.request)
-        # rclpy.spin_until_future_complete(self, future)
-        # if future.result():
-        #     print(future.result())
-        #     self.origin =  future.result().values[0]  # the origin of our robot xy plane
-        # else:
-        #     raise RuntimeError('Parameter request failed')
         self.origin = None
         self.create_subscription(Float32MultiArray, 'ekforigin', self.origin_cb, 1)
-
-        # Using a simple string-based service (you'll need to create a custom one)
-        # For now, I'll use a workaround with SetBool where the request data field isn't used
-        # Better approach: use a std_srvs or create minimal custom service
-        
-        # Actually, let's create a publisher for status and use Trigger service with path as parameter
-        # Since we need string input, I'll demonstrate with a simple approach using a String subscriber
-        # to set the path and Trigger to execute
-        
         self.waypoint_path = None
         self.create_subscription(String, '/waypoint_path', self.path_cb, 10)
+
         self.active_goal = None
         self.queue = []
         self.loop = self.create_timer(0.1, self.control_loop)   # 20Hz
@@ -208,11 +196,14 @@ class WaypointFollowerService(Node):
 
     def load_waypoints(self, path):
         with open(path, 'r') as f:
-            waypoints = json.load(f)['waypoints']
+            file = json.load(f)
+            waypoints = file['waypoints']
+            names = file['name']
             for wp in waypoints:
                 self.queue.append([float(wp['lat']), float(wp['lon']),wp['task']])
                 # self.latlon2xy()
                 self.get_logger().info(f"Received waypoint: {wp}")
+            
             self.latlon2xy()
 
     def control_loop(self):

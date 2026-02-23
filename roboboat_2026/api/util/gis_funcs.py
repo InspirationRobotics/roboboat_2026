@@ -58,7 +58,58 @@ def relative_bearing(lat1, lon1, lat2, lon2, current_heading) -> float:
     relative_bearing = (abs_bearing - current_heading + 180) % 360 - 180  
     return 180 if relative_bearing == -180 else relative_bearing  # Ensures -180 → 180
 
+def latlon2xy(lat,lon, origin_lat, origin_lon):
+        lat1 = math.radians(float(lat))
+        lon1 = math.radians(float(lon))
 
+        R = 6378137.0
+
+        lat0 = math.radians(float(origin_lat))
+        lon0 = math.radians(float(origin_lon))
+
+        dlat = lat1 - lat0
+        dlon = lon1 - lon0
+
+        x = R * dlon * math.cos(lat0)
+        y = R * dlat
+        return x,y
+
+def move_latlon(lat, lon, direction, distance_m):
+    """
+    Move a lat/lon point by a given distance in a cardinal direction.
+
+    Args:
+        lat (float): latitude in degrees
+        lon (float): longitude in degrees
+        direction (str): 'north', 'south', 'east', or 'west'
+        distance_m (float): distance to move in meters
+
+    Returns:
+        (new_lat, new_lon) in degrees
+    """
+    R = 6378137.0  # Earth radius (WGS84), meters
+
+    lat_rad = math.radians(lat)
+    lon_rad = math.radians(lon)
+
+    dlat = 0.0
+    dlon = 0.0
+
+    if direction.lower() == "north":
+        dlat = distance_m / R
+    elif direction.lower() == "south":
+        dlat = -distance_m / R
+    elif direction.lower() == "east":
+        dlon = distance_m / (R * math.cos(lat_rad))
+    elif direction.lower() == "west":
+        dlon = -distance_m / (R * math.cos(lat_rad))
+    else:
+        raise ValueError("Direction must be north, south, east, or west")
+
+    new_lat = lat_rad + dlat
+    new_lon = lon_rad + dlon
+
+    return math.degrees(new_lat), math.degrees(new_lon)
 
 def vector_to_target(pos1 : Tuple, pos2 : Tuple, current_heading) -> Tuple[float, float, float]:
     """
