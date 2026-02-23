@@ -25,6 +25,7 @@ class Teensy:
 
     def read(self):
         with self.lock:
+            self.port.reset_input_buffer()
             return self.port.readline()
 
 # ==========================================================
@@ -145,9 +146,10 @@ class TeensyNode(Node):
             if not line:
                 return 
             if not line.isdigit():
-                # self.get_logger().warning(f"Non-numeric line from teensy: {repr(line)}")
+                self.get_logger().warning(f"Non-numeric line from teensy: {repr(line)}")
                 return
             val = int(line)
+            # print(val)
             if val == 1:
                 state = "AUTO"
             elif val == 0:
@@ -159,8 +161,8 @@ class TeensyNode(Node):
             self.state_pub.publish(msg)
 
         except Exception as e:
-            # self.get_logger().warning(f"Exception in read_loop, line is {repr(line)}")
-            # self.get_logger().error(str(e))
+            self.get_logger().debug(f"Exception in read_loop, line is {repr(line)}")
+            self.get_logger().debug(str(e))
             pass
 
     def destroy_node(self):
