@@ -60,6 +60,7 @@ class FinalMission(Node):
     def send_waypoint(self, point):
         path_msg = Float32MultiArray()
         path_msg.data = point
+        print(point)
         self.wp_pub.publish(path_msg)
 
     def state_cb(self,msg):
@@ -78,7 +79,9 @@ class FinalMission(Node):
         self.get_logger().info(f"Navigate to {point}")
         self.wp_finished = False
         tasks = ['UNKNOWN','NONE','ENTRY_EXIT','NAV_CHANNEL','SPEED_CHALLENGE','OBJECT_DELIVERY','DOCKING','SOUND_SIGNAL']
-        self.send_waypoint([point[0],point[1],tasks.index(point[2])])
+        print(tasks.index(point[2]))
+        print(point)
+        self.send_waypoint([point[0],point[1],float(tasks.index(point[2]))])
         while not self.wp_finished:
             time.sleep(1)
         self.get_logger().info(f"Reached wp {point}")

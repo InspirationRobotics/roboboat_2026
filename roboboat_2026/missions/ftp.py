@@ -134,11 +134,14 @@ class WaypointFollowerService(Node):
         """Point will be given in lat lon for waypoint nav"""
         lat, lon, task_idx = msg.data
         tasks = ['UNKNOWN','NONE','ENTRY_EXIT','NAV_CHANNEL','SPEED_CHALLENGE','OBJECT_DELIVERY','DOCKING','SOUND_SIGNAL']
+        print([lat,lon])
         x,y = self.alert2xy(lat,lon)
+        print([x,y])
 
         # override the current point
         self.reached_all = False
         self.active = True
+        print([x,y,tasks[int(task_idx)]])
         self.active_goal = [x,y,tasks[int(task_idx)]]
         
 
