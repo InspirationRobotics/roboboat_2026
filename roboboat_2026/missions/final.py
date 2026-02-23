@@ -77,7 +77,8 @@ class FinalMission(Node):
         """Point should be [lat,lon]"""
         self.get_logger().info(f"Navigate to {point}")
         self.wp_finished = False
-        self.send_waypoint(point)
+        tasks = ['UNKNOWN','NONE','ENTRY_EXIT','NAV_CHANNEL','SPEED_CHALLENGE','OBJECT_DELIVERY','DOCKING','SOUND_SIGNAL']
+        self.send_waypoint([point[0],point[1],tasks.index(point[2])])
         while not self.wp_finished:
             time.sleep(1)
         self.get_logger().info(f"Reached wp {point}")
