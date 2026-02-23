@@ -42,7 +42,7 @@ class FinalMission(Node):
     def load_waypoints(self, path):
         with open(path, 'r') as f:
             file = json.load(f)
-            print(file)
+            # print(file)
             waypoints = file['waypoints']
             wp_ls = []
             waypoint_dict = {}
@@ -108,7 +108,7 @@ class FinalMission(Node):
         # Step 1, load all waypoints
         wpbook = self.load_waypoints("/root/rb_ws/src/roboboat_2026/roboboat_2026/missions/waypoints/waypoint_001.json")
         self.get_logger().info(f"Waypoints loaded")
-        self.get_logger().info(f"{wpbook}")
+        # self.get_logger().info(f"{wpbook}")
         
         while self.gps_pos is None:
             self.get_logger().info("Waiting for GPS info")
@@ -120,8 +120,8 @@ class FinalMission(Node):
         return_home_pos = self.gps_pos
         self.get_logger().info(f"Return home pos is {return_home_pos}")
         self.report_wrap(f"GatePass,ENTRY,{self.gps_pos[0]},{self.gps_pos[1]}")
-        new_lat, new_lon = move_latlon(self.gps_pos[0],self.gps[1],direction='east',distance_m=20)
-        self.nav2point([new_lat,new_lon])
+        new_lat, new_lon = move_latlon(self.gps_pos[0],self.gps_pos[1],direction='east',distance_m=20)
+        self.nav2point([new_lat,new_lon,"ENTRY_EXIT"])
         self.report_wrap(f"GatePass,EXIT,{self.gps_pos[0]},{self.gps_pos[1]}")
         self.send_ivc("End Gate")
 
