@@ -34,6 +34,9 @@ class FinalMission(Node):
         self.gps_sub = self.create_subscription(Float32MultiArray, '/GPS', self.gps_cb, 1)
         self.gps_pos = None
 
+        # IVC stuff
+        self.ivc_pub = self.create_publisher(String,'/ivc/send',10)
+
         rclpy.spin(self)
 
     def load_waypoints(self, path):
@@ -57,6 +60,12 @@ class FinalMission(Node):
     def trigger_launcher(self):
         request = Trigger.Request()
         # TODOs 
+
+    def send_ivc(self,line):
+        msg = String()
+        msg.data = line
+        self.ivc_pub.publish(msg)
+
     def send_waypoint(self, point):
         path_msg = Float32MultiArray()
         path_msg.data = point
@@ -106,6 +115,7 @@ class FinalMission(Node):
             time.sleep(1)
 
         # Entry & Exit Gate mission
+        self.send_ivc("Start Gate")
         self.get_logger().info("Starting Entry Exit Gate")
         return_home_pos = self.gps_pos
         self.get_logger().info(f"Return home pos is {return_home_pos}")
@@ -113,23 +123,29 @@ class FinalMission(Node):
         new_lat, new_lon = move_latlon(self.gps_pos[0],self.gps[1],direction='east',distance_m=20)
         self.nav2point([new_lat,new_lon])
         self.report_wrap(f"GatePass,EXIT,{self.gps_pos[0]},{self.gps_pos[1]}")
+        self.send_ivc("End Gate")
 
         # Nav Channel
+        self.send_ivc("Start Nav")
         self.nav2point(wpbook['N1'])
         self.report_wrap(f"ObjectDetected,BOAT,RED,32.112345,-21.12345,1,NAV_CHANNEL")
         self.nav2point(wpbook['N2'])
         self.nav2point(wpbook['N3'])
         self.report_wrap(f"ObjectDetected,BUOY,RED,32.112345,-21.12345,2,NAV_CHANNEL")
         self.report_wrap(f"ObjectDetected,LIGHT_BEACON,RED,32.112345,-21.12345,3,NAV_CHANNEL")
+        self.send_ivc('End Nav')
 
         # Docking
+        self.send_ivc("Start Docking")
         self.nav2point(wpbook['D1'])
         self.nav2point(wpbook['D2'])
         self.nav2point(wpbook['D3'])
 
+
         time.sleep(5)
         
         self.move_by_time(pwms=[-0.6,0.0,0.0],t=4)
+        self.send_ivc("End Docking")
 
         # Speed Challenge
         for key,value in wpbook.items():
